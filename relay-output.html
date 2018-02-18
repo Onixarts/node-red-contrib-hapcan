@@ -1,0 +1,139 @@
+<script type="text/javascript">
+    RED.nodes.registerType('relay-output',{
+        category: 'hapcan',
+        color: '#E9967A',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            channel: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 6);}},
+            defaultAction: {value: 0x02, required: true, validate: function(val) {return (val>=-1 && val <0x03)}}
+        },
+        inputs:1,
+        outputs:0,
+        icon: "relay-output.png",
+        align: 'right',
+        label: function() {
+            return (this.name||"relay output") + ' ('+this.node+','+this.group+') ['+this.channel+']';
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        inputLabels: "relay control message",
+        oneditprepare: function() {
+            var nodeOptions = '';
+            var groupOptions = '';
+            for(var i = 1; i < 256; i++)
+            {
+                var selectedNode = '';
+                if((Number(this.node) === i))
+                    selectedNode = 'selected="selected"';
+                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+
+                var selectedGroup = '';
+                if((Number(this.group) === i))
+                    selectedGroup = 'selected="selected"';
+                
+                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+            }
+            
+            $("#node-input-node").append(nodeOptions);
+            $("#node-input-group").append(groupOptions);
+        }
+        });
+
+    function validateNodeGroup(val0)
+    {
+        return (val > 0 && val < 256);
+    }
+</script>
+
+<script type="text/x-red" data-template-name="relay-output">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
+        <select id="node-input-group"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-defaultAction"><i class="fas fa-play"></i> Default action</label>
+        <select id="node-input-defaultAction">
+                <option value="-1">Do nothing</option>
+                <option value="0">Turn OFF</option>
+                <option value="1">Turn ON</option>
+                <option selected="selected" value="2">Toggle</option>
+        </select>
+    </div>    
+    <div class="form-row">
+            <label for="node-input-channel"><i class="fa fa-sign-out"></i> Channel</label>
+            <select id="node-input-channel">
+                    <option selected="selected" value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+            </select>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="relay-output">
+    <p>Hapcan RELAY UNIV-3.2.X output node.</p>
+    <p>The node allows you to control single relay output or whole relay module. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">string | number | any | object</span></dt>
+        <dd>Any input message will perform default action. If topic is set to <i>control</i> the payload will control the Relay module.</dd>
+
+        <dt class="optional">topic <span class="property-type">string</span></dt>
+        <dd>Topic is optional. When a <i>control</i> value is provided it will overrides default action settings and allows controlling of the node directly.</dd>
+    </dl>
+    
+    <h3>Details</h3>
+    <p>The default node behaviour on any input message is to execute the action specified in properties. 
+        When <code>msg.topic</code> is set to <i>control</i> then input value will control node in several ways. In control mode the <code>msg.payload</code> 
+        can be one of the following types:
+    </p>
+    <dl class="message-properties">
+        <dt>string</dt> 
+        <dd>Value of <i>on</i>, <i>off</i> or <i>toggle</i> will control the default channel. Other strings are ignored. Case insensitive.</dd>
+
+        <dt>number</dt> 
+        <dd>Hapcan's Relay module instruction. 0(off), 1(on) or 2(toggle) will control the default channel. Other values are ignored.</dd>            
+
+        <dt>object</dt> 
+        <dd>Gives an ability to control whole Relay module by providing values. See details below.</dd>
+        
+    </dl>
+    <h3>Full control object definition</h3>
+    <p>
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control whole Relay module. Below are the possible properties list that can be specified. 
+        If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
+    </p>
+    <dl class="message-properties">
+        <dt>channels <span class="property-type">number | array</span></dt> 
+        <dd>Single number value or number array of selected channels to perform the action.</dd>
+
+        <dt>action <span class="property-type">string | number</span></dt></dt> 
+        <dd>String or number action representation. See <code>msg.payload</code> description above for details.</dd>
+
+        <!-- <dt>delay <span class="property-type">string | number</span></dt></dt> 
+        <dd>Delay value as a string or Hapcan delay value.</dd> -->
+    </dl>
+
+    <h3>References</h3>
+    <ul>
+        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm">Hapcan relays</a> - module firmware notes.</li>
+    </ul>
+
+</script>

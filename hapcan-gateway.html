@@ -1,0 +1,44 @@
+<script type="text/javascript">
+    RED.nodes.registerType('hapcan-gateway',{
+        category: 'config',
+        // color: '#E9967A',
+        defaults: {
+            // name: {value:""},
+            host: {value:"192.168.0.100", required: true, },
+            port: {value: 1000, required: true, validate: function(val){return (val>0 && val < 65535);}},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            // channel: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 6);}}
+        },
+        // inputs:1,
+        // outputs:0,
+        //icon: "relay-output.png",
+        //align: 'right',
+        label: function() {
+            return this.host+':'+this.port + ' ('+this.node+','+this.group+')';
+        },
+        });
+</script>
+
+<script type="text/x-red" data-template-name="hapcan-gateway">
+    <div class="form-row">
+        <label for="node-config-input-host"><i class="icon-bookmark"></i> Host</label>
+        <input type="text" id="node-config-input-host" placeholder="Hapcan ethernet module ip">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-port"><i class="icon-bookmark"></i> Port</label>
+        <input type="number" id="node-config-input-port" placeholder="Hapcan ethernet module port number">
+    </div>    
+    <div class="form-row">
+        <label for="node-config-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <input type="number" id="node-config-input-node" placeholder="Node number (1-255)">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-group"><i class="fa fa-th"></i> Group</label>
+        <input type="number" id="node-config-input-group" placeholder="Group number (1-255)">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="hapcan-gateway">
+    <p>Hapcan configuration and gateway node.</p>
+</script>
