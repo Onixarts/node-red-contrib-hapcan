@@ -3,6 +3,7 @@ module.exports = function (RED) {
     var reconnectTime = RED.settings.socketReconnectTime || 10000;
     var socketTimeout = RED.settings.socketTimeout || null;
     var net = require('net');
+    var events = require('events');
 
     var ConnectionStatus = Object.freeze(
         {
@@ -21,13 +22,16 @@ module.exports = function (RED) {
         this.group = n.group;
         this.node = n.node;
         this.client = null;
+        this.incommingMessage = Buffer.allocUnsafe(15);
+        this.incommingMessage.fill(0xFF);
+        this.incommingMessageIndex = 0;
+        this.eventEmitter = new events.EventEmitter();
 
         this.connectionStatus = ConnectionStatus.notConnected;
         
         // register hapcan nodes that uses the gateway
         var node = this;
         this.clientNodes = {};
-        this.receivingNodes = {};
 
         node.setConnectionStatus = function(connectionStatus)
         {
@@ -50,13 +54,7 @@ module.exports = function (RED) {
             node.status(status);
             for(var hapcanId in node.clientNodes)
             {
-                //node.log(hapcanId);
                 node.clientNodes[hapcanId].status(status);
-            }
-            for(var hapcanId in node.receivingNodes)
-            {
-                //node.log(hapcanId);
-                node.receivingNodes[hapcanId].status(status);
             }
         };
 
@@ -75,7 +73,7 @@ module.exports = function (RED) {
             }
             else
             {
-                node.log("Missing '_' in HapcanId. Node not registered.");
+                node.error("Missing '_' in HapcanId. Node not registered.");
                 return;
             }
             
@@ -132,12 +130,50 @@ module.exports = function (RED) {
                 });
 
                 node.client.on('data', function(data){
-                    node.log('>> jakies dane przybyly');
-
+                    
+                    for(var i = 0; i < data.length; i++)
+                    {
+                        node.incommingMessage[node.incommingMessageIndex] = data[i];
+                        node.incommingMessageIndex++;
+                        if(node.incommingMessageIndex === 15)
+                        {
+                            if(node.incommingMessage[0] === 0xAA && node.incommingMessage[14]=== 0xA5)
+                                node.messageReceived(node.incommingMessage);
+                            else
+                                node.warn('Invalid frame received:' + node.messageToString(node.incommingMessage));
+                            node.incommingMessage.fill(0xFF);
+                            node.incommingMessageIndex = 0;
+                        }
+                    }
                 });
             }
 
         };
+
+        this.messageToString = function(hapcanMessage)
+        {
+            var messageString = '';
+            for(var i = 0; i < hapcanMessage.length; i++)
+                messageString+= ' ' + ("0" + hapcanMessage[i].toString(16).toUpperCase()).slice (-2);
+            return messageString;
+        }
+
+        function HapcanMessage(frame)
+        {
+            this.frame = frame;
+            this.type =  (((frame[1]) * 256 + frame[2]) / 16).toString(16);
+            this.state = frame[8] === 0x00 ? 'OFF' : 'ON';
+        }
+
+        this.messageReceived = function(frame)
+        {
+            node.log('received: << ' + node.messageToString(frame));
+
+            var hapcanMsg = new HapcanMessage(frame);
+
+            var eventArgs = { payload: hapcanMsg, topic: 'statusMessage' };
+            node.eventEmitter.emit('messageReceived_'+hapcanMsg.type, eventArgs);
+        }
 
         this.send = function(msg){
             if (node.connectionStatus.value === ConnectionStatus.connected.value ) {
@@ -147,24 +183,15 @@ module.exports = function (RED) {
                 else if (Buffer.isBuffer(msg.payload)) {
 
                     var sum = 0;
-                    var messageString = '';
                     for (var i = 1; i < 13; i++)
                     {
-                        messageString+= ' ' + ("0" +msg.payload[i].toString(16).toUpperCase()).slice (-2);
                         sum += msg.payload[i];
                     }
                     msg.payload[13] = sum;
-                    messageString+= ' ' + ("0" +msg.payload[13].toString(16).toUpperCase()).slice (-2);
                     
-                    this.log('Sending: '+messageString);
+                    this.log('sending:  >> '+ node.messageToString(msg.payload));
 
                     node.client.write(msg.payload);
-
-                    // if (typeof msg.payload === "object") {
-                    //         msg.payload = JSON.stringify(msg.payload);
-                    //     } else if (typeof msg.payload !== "string") {
-                    //     msg.payload = "" + msg.payload;
-                    // }
                 }
             }
         };
