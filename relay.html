@@ -141,6 +141,8 @@
 
 </script>
 
+
+
 <script type="text/javascript">
     RED.nodes.registerType('relay-input',{
         category: 'hapcan',
@@ -150,19 +152,18 @@
             name: {value:""},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
-            channel: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 6);}},
-            //defaultAction: {value: 0x02, required: true, validate: function(val) {return (val>=-1 && val <0x03)}}
+            channelFilter: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 256);}},
         },
         inputs:0,
         outputs:1,
         icon: "relay-output.png",
         align: 'left',
         label: function() {
-            return (this.name||"relay input") + ' ('+this.node+','+this.group+') ['+this.channel+']';
+            return (this.name||"relay input") + ' ('+this.node+','+this.group+')';
         },
         labelStyle: function() { return this.name?"node_label_italic":""; } ,
-        inputLabels: "relay status message",
         oneditprepare: function() {
+
             var nodeOptions = '';
             var groupOptions = '';
             for(var i = 1; i < 256; i++)
@@ -181,13 +182,32 @@
             
             $("#node-input-node").append(nodeOptions);
             $("#node-input-group").append(groupOptions);
+            
+            if( this.channelFilter & 1 !== 0 )
+                $("#channel1").prop('checked', true);
+            if( (this.channelFilter & 2) !== 0 )
+                $("#channel2").prop('checked', true);
+            if( (this.channelFilter & 4) !== 0 )
+                $("#channel3").prop('checked', true);
+            if( (this.channelFilter & 8) !== 0 )
+                $("#channel4").prop('checked', true);
+            if( (this.channelFilter & 16) !== 0 )
+                $("#channel5").prop('checked', true);
+            if(( this.channelFilter & 32) !== 0 )
+                $("#channel6").prop('checked', true);
+                
+        },
+        oneditsave: function(){
+            this.channelFilter = 0;
+            this.channelFilter |= $("#channel1").is(":checked") ? 1 : 0;
+            this.channelFilter |= $("#channel2").is(":checked") ? 2 : 0;
+            this.channelFilter |= $("#channel3").is(":checked") ? 4 : 0;
+            this.channelFilter |= $("#channel4").is(":checked") ? 8 : 0;
+            this.channelFilter |= $("#channel5").is(":checked") ? 16 : 0;
+            this.channelFilter |= $("#channel6").is(":checked") ? 32 : 0;
         }
         });
 
-    function validateNodeGroup(val0)
-    {
-        return (val > 0 && val < 256);
-    }
 </script>
 
 <script type="text/x-red" data-template-name="relay-input">
@@ -208,59 +228,39 @@
         <select id="node-input-group"></select>
     </div>
     <div class="form-row">
-        <label for="node-input-channel"><i class="fa fa-sign-out"></i> Channel filter</label>
-        <input id="node-input-channel" type="checkbox" value="1"> Relay output 1<br>
-        <input id="node-input-channel" type="checkbox" value="2"> Relay output 2<br>
-        <input id="node-input-channel" type="checkbox" value="4"> Relay output 3<br>
-        <input id="node-input-channel" type="checkbox" value="8"> Relay output 4<br>
-        <input id="node-input-channel" type="checkbox" value="16"> Relay output 5<br>
-        <input id="node-input-channel" type="checkbox" value="32"> Relay output 6<br>
+        <label for="node-input-channel" style="width: 150px;"><i class="fa fa-sign-out"></i> Channel filter</label><br>
+        <input style="width: 10%;" id="channel1" type="checkbox" value="1">1 
+        <input style="width: 10%;" id="channel2" type="checkbox" value="2">2
+        <input style="width: 10%;" id="channel3" type="checkbox" value="4">3
+        <input style="width: 10%;" id="channel4" type="checkbox" value="8">4
+        <input style="width: 10%;" id="channel5" type="checkbox" value="16">5
+        <input style="width: 10%;" id="channel6" type="checkbox" value="32">6
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="relay-input">
     <p>Hapcan RELAY UNIV-3.2.X input node.</p>
-    <p>The node emit relay status messages. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    <p>The node emit relay status messages. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
     
-    <h3>Inputs</h3>
+    <h3>Output</h3>
     <dl class="message-properties">
-        <dt>payload <span class="property-type">string | number | any | object</span></dt>
-        <dd>Any input message will perform default action. If topic is set to <i>control</i> the payload will control the Relay module.</dd>
-
-        <dt class="optional">topic <span class="property-type">string</span></dt>
-        <dd>Topic is optional. When a <i>control</i> value is provided it will overrides default action settings and allows controlling of the node directly.</dd>
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>Hapcan message object with relay module's state data.</dd>
     </dl>
     
     <h3>Details</h3>
-    <p>The default node behaviour on any input message is to execute the action specified in properties. 
-        When <code>msg.topic</code> is set to <i>control</i> then input value will control node in several ways. In control mode the <code>msg.payload</code> 
-        can be one of the following types:
+    <p>The <code>msg.payload</code> contains:
     </p>
     <dl class="message-properties">
-        <dt>string</dt> 
-        <dd>Value of <i>on</i>, <i>off</i> or <i>toggle</i> will control the default channel. Other strings are ignored. Case insensitive.</dd>
+        <dt>frame <span class="property-type">Buffer[15]</span></dt>
+        <dd>15 bytes buffer containing raw Hapcan's CAN frame.</dd>
 
-        <dt>number</dt> 
-        <dd>Hapcan's Relay module instruction. 0(off), 1(on) or 2(toggle) will control the default channel. Other values are ignored.</dd>            
+        <dt>state <span class="property-type">string</span></dt>
+        <dd>Channel's state, can be <i>ON</i> or <i>OFF</i>.</dd>            
 
-        <dt>object</dt> 
-        <dd>Gives an ability to control whole Relay module by providing values. See details below.</dd>
+        <dt>enabled <span class="property-type">boolean</span></dt>
+        <dd>Channel's state representation as bool value, <i>true</i> or <i>false</i>.</dd>
         
-    </dl>
-    <h3>Full control object definition</h3>
-    <p>
-        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control whole Relay module. Below are the possible properties list that can be specified. 
-        If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
-    </p>
-    <dl class="message-properties">
-        <dt>channels <span class="property-type">number | array</span></dt> 
-        <dd>Single number value or number array of selected channels to perform the action.</dd>
-
-        <dt>action <span class="property-type">string | number</span></dt></dt> 
-        <dd>String or number action representation. See <code>msg.payload</code> description above for details.</dd>
-
-        <!-- <dt>delay <span class="property-type">string | number</span></dt></dt> 
-        <dd>Delay value as a string or Hapcan delay value.</dd> -->
     </dl>
 
     <h3>References</h3>

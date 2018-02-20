@@ -31,7 +31,7 @@ module.exports = function(RED) {
         node.on('input', function(msg) {
             
             var control = { 
-                channels: 0x01 << Number(node.channel), 
+                channels: 0x01 << (Number(node.channel)-1), 
                 action: Number(node.defaultAction),
                 delay: 0x00
             }
@@ -52,7 +52,7 @@ module.exports = function(RED) {
                         {
                             if(!isChannelValid(msg.payload.channels))
                                 return;
-                            control.channels = 0x01 << msg.payload.channels;
+                            control.channels = 0x01 << (msg.payload.channels -1);
                         }
                         else if(Array.isArray(msg.payload.channels))
                         {
@@ -60,7 +60,7 @@ module.exports = function(RED) {
                             {
                                 if(!isChannelValid(msg.payload.channels[i]))
                                     return;
-                                control.channels |= 0x01 << msg.payload.channels[i];
+                                control.channels |= 0x01 << (msg.payload.channels[i] - 1);
                             }
                         }
                         else
@@ -145,9 +145,9 @@ module.exports = function(RED) {
         node.group = config.group;
         node.node = config.node;
         node.name = config.name;
-        node.channel = config.channel;
-        //node.defaultAction = config.defaultAction;
-        node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + ("00" + node.channel).slice (-3)+'_';
+        node.channelFilter = config.channelFilter;
+        
+        node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + '_';
 
         this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
 
@@ -167,10 +167,11 @@ module.exports = function(RED) {
         });
 
         node.gateway.eventEmitter.on('messageReceived_302', function(data){
-            //node.log('mam dane ' + data.length);
-            //TODO: filter channel data 
+            
             var hapcanMessage = data.payload;
 
+            if((node.channelFilter & (1 << (hapcanMessage.frame[7] - 1))) === 0)
+                return;
 
             hapcanMessage.state = hapcanMessage.frame[8] === 0x00 ? 'OFF' : 'ON';
             hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
