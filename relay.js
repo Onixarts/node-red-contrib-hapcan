@@ -127,6 +127,10 @@ module.exports = function(RED) {
                 }
                 control.action = value;
             }
+            else if(typeof value === 'boolean')
+            {
+                control.action = value != false ? 0x01 : 0x00;
+            }
             return true;
         }
 
@@ -165,73 +169,15 @@ module.exports = function(RED) {
         node.gateway.eventEmitter.on('messageReceived_302', function(data){
             //node.log('mam dane ' + data.length);
             //TODO: filter channel data 
+            var hapcanMessage = data.payload;
+
+
+            hapcanMessage.state = hapcanMessage.frame[8] === 0x00 ? 'OFF' : 'ON';
+            hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
+
             node.send(data);
         });
 
-        // node.on('input', function(msg) {
-            
-        //     var control = { 
-        //         channels: 0x01 << Number(node.channel), 
-        //         action: Number(node.defaultAction),
-        //         delay: 0x00
-        //     }
-
-        //     if(msg.topic === "control" )
-        //     {
-        //         if(typeof msg.payload === 'object')
-        //         {
-        //             if( msg.payload.hasOwnProperty('action'))
-        //             {
-        //                 if(!parseAction(msg.payload.action, control))
-        //                     return;
-        //             }
-        //             if( msg.payload.hasOwnProperty('channels'))
-        //             {
-        //                 control.channels = 0;
-        //                 if(typeof msg.payload.channels === 'number')
-        //                 {
-        //                     if(!isChannelValid(msg.payload.channels))
-        //                         return;
-        //                     control.channels = 0x01 << msg.payload.channels;
-        //                 }
-        //                 else if(Array.isArray(msg.payload.channels))
-        //                 {
-        //                     for(var i = 0; i < msg.payload.channels.length; i++)
-        //                     {
-        //                         if(!isChannelValid(msg.payload.channels[i]))
-        //                             return;
-        //                         control.channels |= 0x01 << msg.payload.channels[i];
-        //                     }
-        //                 }
-        //                 else
-        //                 {
-        //                     node.error('Invalid channels type: '+ typeof msg.payload.channels); 
-        //                     return;
-        //                 }
-        //             }
-        //         }
-        //         else
-        //         {
-        //             if(!parseAction(msg.payload, control))
-        //                 return;
-        //         }
-        //     }
-
-        //     if( control.action === -1 )
-        //         return;
-        //     if( control.channels === 0 )
-        //         return;
-
-        //     var hapcanMsg = Buffer.from([0xAA, 0x10,0xA0, 0xF0,0xF0, 0xFF,0xFF, node.node,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-            
-        //     hapcanMsg[5] = control.action;
-        //     hapcanMsg[6] = control.channels;
-        //     hapcanMsg[9] = control.delay;
-
-        //     msg.payload = hapcanMsg;
-        //     msg.topic = 'control';
-        //     node.gateway.send(msg);
-        // });
         this.on('close', function() {
             // tidy up any state
         });

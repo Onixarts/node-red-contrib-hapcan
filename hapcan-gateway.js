@@ -162,7 +162,6 @@ module.exports = function (RED) {
         {
             this.frame = frame;
             this.type =  (((frame[1]) * 256 + frame[2]) / 16).toString(16);
-            this.state = frame[8] === 0x00 ? 'OFF' : 'ON';
         }
 
         this.messageReceived = function(frame)

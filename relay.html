@@ -92,7 +92,7 @@
     
     <h3>Inputs</h3>
     <dl class="message-properties">
-        <dt>payload <span class="property-type">string | number | any | object</span></dt>
+        <dt>payload <span class="property-type">string | number | bool | any | object</span></dt>
         <dd>Any input message will perform default action. If topic is set to <i>control</i> the payload will control the Relay module.</dd>
 
         <dt class="optional">topic <span class="property-type">string</span></dt>
@@ -111,6 +111,9 @@
         <dt>number</dt> 
         <dd>Hapcan's Relay module instruction. 0(off), 1(on) or 2(toggle) will control the default channel. Other values are ignored.</dd>            
 
+        <dt>boolean</dt> 
+        <dd>Output will turn ON when value is true, otherwise it will turn OFF. This type is easy to use with UI switch control.</dd>
+
         <dt>object</dt> 
         <dd>Gives an ability to control whole Relay module by providing values. See details below.</dd>
         
@@ -124,7 +127,7 @@
         <dt>channels <span class="property-type">number | array</span></dt> 
         <dd>Single number value or number array of selected channels to perform the action.</dd>
 
-        <dt>action <span class="property-type">string | number</span></dt></dt> 
+        <dt>action <span class="property-type">string | number | bool</span></dt></dt> 
         <dd>String or number action representation. See <code>msg.payload</code> description above for details.</dd>
 
         <!-- <dt>delay <span class="property-type">string | number</span></dt></dt> 
