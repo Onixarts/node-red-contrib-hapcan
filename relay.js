@@ -170,6 +170,9 @@ module.exports = function(RED) {
             
             var hapcanMessage = data.payload;
 
+            if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
+                return;
+
             if((node.channelFilter & (1 << (hapcanMessage.frame[7] - 1))) === 0)
                 return;
 

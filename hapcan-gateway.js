@@ -162,6 +162,8 @@ module.exports = function (RED) {
         {
             this.frame = frame;
             this.type =  (((frame[1]) * 256 + frame[2]) / 16).toString(16);
+            this.node = frame[3];
+            this.group = frame[4];
         }
 
         this.messageReceived = function(frame)
