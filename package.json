@@ -20,6 +20,7 @@
     "nodes": {
       "relay": "relay.js",
       "rtc": "rtc.js",
+      "temp" : "temp.js",
       "hapcan-gateway": "hapcan-gateway.js"
     }
 }
