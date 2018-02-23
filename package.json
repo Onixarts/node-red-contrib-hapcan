@@ -19,6 +19,7 @@
   "node-red" : {
     "nodes": {
       "relay": "relay.js",
+      "rtc": "rtc.js",
       "hapcan-gateway": "hapcan-gateway.js"
     }
 }

@@ -180,6 +180,8 @@ module.exports = function(RED) {
             hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
             hapcanMessage.channel = hapcanMessage.frame[7];
 
+            data.topic = 'Relay message';
+
             node.send(data);
         });
 

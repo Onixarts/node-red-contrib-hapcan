@@ -172,7 +172,7 @@ module.exports = function (RED) {
 
             var hapcanMsg = new HapcanMessage(frame);
 
-            var eventArgs = { payload: hapcanMsg, topic: 'statusMessage' };
+            var eventArgs = { payload: hapcanMsg, topic: 'Hapcan Message' };
             node.eventEmitter.emit('messageReceived_'+hapcanMsg.type, eventArgs);
         }
 
