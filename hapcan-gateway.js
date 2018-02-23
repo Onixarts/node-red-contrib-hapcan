@@ -161,7 +161,7 @@ module.exports = function (RED) {
         function HapcanMessage(frame)
         {
             this.frame = frame;
-            this.type =  Number((((frame[1]) * 256 + (frame[2] & 0xF0)) / 16).toString(16));
+            this.frameType =  Number((((frame[1]) * 256 + (frame[2] & 0xF0)) / 16).toString(16));
             this.isAnswer = (frame[2] & 0x01) === 0 ? false : true;
             this.node = frame[3];
             this.group = frame[4];
