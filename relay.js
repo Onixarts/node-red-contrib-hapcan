@@ -178,6 +178,7 @@ module.exports = function(RED) {
 
             hapcanMessage.state = hapcanMessage.frame[8] === 0x00 ? 'OFF' : 'ON';
             hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
+            hapcanMessage.channel = hapcanMessage.frame[7];
 
             node.send(data);
         });
