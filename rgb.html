@@ -51,8 +51,12 @@
                 var selectedSpeed = '';
                 if((Number(this.speed) === i))
                     selectedSpeed = 'selected="selected"';
-                var value = i===-1? "leave unchanged" : i;
-                value = i === 0? "0 - instant switch" : i;
+                var value = i;
+                if( value === -1 )
+                    value = "leave unchanged";
+                else if( value === 0 )
+                    value = "0 - instant switch";
+
                 speedOptions += '<option '+ selectedSpeed +' value="'+i+'">'+value+'</option>';
             }
             
