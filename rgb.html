@@ -1,0 +1,319 @@
+<script type="text/javascript">
+    RED.nodes.registerType('rgb-output',{
+        category: 'hapcan',
+        color: '#C1C1C1',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            channel: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 4);}},
+            state: {value: 0xFF, required: true, validate: function(val) {return (val>=0 && val < 256)}},
+            speed: {value: 0x00, required: true, validate: function(val) {return (val>=-1 && val <= 256)}}
+        },
+        inputs:1,
+        outputs:0,
+        icon: "relay-output.png",
+        align: 'right',
+        label: function() {
+            return (this.name||"rgb output") + ' ('+this.node+','+this.group+') ['+this.channel+']';
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        inputLabels: "rgb control message",
+        oneditprepare: function() {
+            var nodeOptions = '';
+            var groupOptions = '';
+            var stateOptions = '';
+            var speedOptions = '';
+            for(var i = -1; i < 256; i++)
+            {
+                if(i>0)
+                {
+                    var selectedNode = '';
+                    if((Number(this.node) === i))
+                        selectedNode = 'selected="selected"';
+                    nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+
+                    var selectedGroup = '';
+                    if((Number(this.group) === i))
+                        selectedGroup = 'selected="selected"';
+                    
+                    groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+                }
+
+                if(i >= 0)
+                {
+                    var selectedState = '';
+                    if((Number(this.state) === i))
+                        selectedState = 'selected="selected"';
+                    stateOptions += '<option '+ selectedState +' value="'+i+'">'+i+'</option>';
+                }
+                var selectedSpeed = '';
+                if((Number(this.speed) === i))
+                    selectedSpeed = 'selected="selected"';
+                var value = i===-1? "leave unchanged" : i;
+                value = i === 0? "0 - instant switch" : i;
+                speedOptions += '<option '+ selectedSpeed +' value="'+i+'">'+value+'</option>';
+            }
+            
+            $("#node-input-node").append(nodeOptions);
+            $("#node-input-group").append(groupOptions);
+            $("#node-input-state").append(stateOptions);
+            $("#node-input-speed").append(speedOptions);
+        }
+        });
+</script>
+
+<script type="text/x-red" data-template-name="rgb-output">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
+        <select id="node-input-group"></select>
+    </div>
+    <div class="form-row">
+            <label for="node-input-channel"><i class="fa fa-sign-out"></i> Channel</label>
+            <select id="node-input-channel">
+                    <option selected="selected" value="1">Red</option>
+                    <option value="2">Green</option>
+                    <option value="3">Blue</option>
+                    <option value="4">Master</option>
+            </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-state"><i class="fa fa-dot-circle-o"></i> Default state</label>
+        <select id="node-input-state"></select>
+    </div>    
+    <div class="form-row">
+        <label for="node-input-speed"><i class="fa fa-clock-o"></i> Speed</label>
+        <select id="node-input-speed"></select>
+    </div>    
+</script>
+
+<script type="text/x-red" data-help-name="rgb-output">
+    <p>Allows controlling of the Hapcan RGB LED Controller UNIV-3.8.X module.</p>
+    <p>The node allows you to control single rgb channel or whole rgb module. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">string | number | bool | any | object</span></dt>
+        <dd>Any input message will perform default action. If topic is set to <i>control</i> the payload will control the RGB module.</dd>
+
+        <dt class="optional">topic <span class="property-type">string</span></dt>
+        <dd>Topic is optional. When a <i>control</i> value is provided it will overrides default settings and allows controlling of the node directly.</dd>
+    </dl>
+    
+    <h3>Details</h3>
+    <p>The default node behaviour on any input message is to set state to the value with speed specified in properties. 
+        When <code>msg.topic</code> is set to <i>control</i> then input value will control node in several ways. In control mode the <code>msg.payload</code> 
+        can be one of the following types:
+    </p>
+    <dl class="message-properties">
+        <dt>string</dt> 
+        <dd>Value of <i>ON</i>, <i>OFF</i>, <i>TOGGLE</i>, <i>STOP</i> will control the default channel. Case insensitive.
+        </dd>
+
+        <dt>number</dt> 
+        <dd>Output channel will be set to the specified value (0-255).</dd>
+
+        <dt>boolean</dt> 
+        <dd>Output channel will be turn ON when value is true, otherwise it will turn OFF.</dd>
+
+        <dt>object</dt> 
+        <dd>Gives an ability to control whole RGB module by providing values. See details below.</dd>
+    </dl>
+    <p>
+        <b>Note</b>. Node will send different instructions to Hapcan module based on current parameter values.
+        For example, if speed = 0 then channel will switch to desired state instantly. Speed > 0 cause the node will send two frames, set speed for channel and set softly
+        to state value. If string TOGGLE is passed, the node will send toggle or start command to the Hapcan module, based on speed value.
+    </p>
+
+    <h3>Full control object definition</h3>
+    <p>
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control whole RGB module. Below are the possible properties list that can be specified. 
+        If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
+    </p>
+    <dl class="message-properties">
+        <dt>channel <span class="property-type">number | string </span></dt> 
+        <dd>Single number value (1-4) or channel string name (RED, GREEN, BLUE, MASTER) of selected channel to perform the action.</dd>
+        
+        <dt>state <span class="property-type">string | number | bool</span></dt></dt> 
+        <dd>String, number or bool state value. See <code>msg.payload</code> description above for details.</dd>
+
+        <dt>speed <span class="property-type">number</span></dt></dt> 
+        <dd>Animation time in seconds (0-255s). The speed value affect final instruction that node will send to the Hapcan module.
+            If speed = 0 the state will change instantly. Other values will change state softly.
+        </dd>
+    </dl>
+
+    <h3>References</h3>
+    <ul>
+        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm">Hapcan RGB Controller</a> - module firmware notes.</li>
+    </ul>
+
+</script>
+
+
+
+<script type="text/javascript">
+    RED.nodes.registerType('rgb-input',{
+        category: 'hapcan',
+        color: '#D3D3D3',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            channelFilter: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 256);}},
+        },
+        inputs:0,
+        outputs:1,
+        icon: "relay-output.png",
+        align: 'left',
+        label: function() {
+            return (this.name||"rgb input") + ' ('+this.node+','+this.group+')';
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        oneditprepare: function() {
+
+            var nodeOptions = '';
+            var groupOptions = '';
+            for(var i = 1; i < 256; i++)
+            {
+                var selectedNode = '';
+                if((Number(this.node) === i))
+                    selectedNode = 'selected="selected"';
+                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+
+                var selectedGroup = '';
+                if((Number(this.group) === i))
+                    selectedGroup = 'selected="selected"';
+                
+                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+            }
+            
+            $("#node-input-node").append(nodeOptions);
+            $("#node-input-group").append(groupOptions);
+            
+            if( this.channelFilter & 1 !== 0 )
+                $("#channel1").prop('checked', true);
+            if( (this.channelFilter & 2) !== 0 )
+                $("#channel2").prop('checked', true);
+            if( (this.channelFilter & 4) !== 0 )
+                $("#channel3").prop('checked', true);
+            if( (this.channelFilter & 8) !== 0 )
+                $("#channel4").prop('checked', true);
+                
+        },
+        oneditsave: function(){
+            this.channelFilter = 0;
+            this.channelFilter |= $("#channel1").is(":checked") ? 1 : 0;
+            this.channelFilter |= $("#channel2").is(":checked") ? 2 : 0;
+            this.channelFilter |= $("#channel3").is(":checked") ? 4 : 0;
+            this.channelFilter |= $("#channel4").is(":checked") ? 8 : 0;
+        }
+        });
+
+</script>
+
+<script type="text/x-red" data-template-name="rgb-input">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
+        <select id="node-input-group"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-channel" style="width: 150px;"><i class="fa fa-sign-out"></i> Channel filter</label><br>
+        <input style="width: 10%;" id="channel1" type="checkbox" value="1">Red 
+        <input style="width: 10%;" id="channel2" type="checkbox" value="2">Green
+        <input style="width: 10%;" id="channel3" type="checkbox" value="4">Blue
+        <input style="width: 10%;" id="channel4" type="checkbox" value="8">Master
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="rgb-input">
+    <p>Receives Hapcan RGB LED Controller UNIV-3.8.X status messages.</p>
+    <p>The node emit RGB status messages. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
+    
+    <h3>Output</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>Hapcan message object with RGB module's state data.</dd>
+
+        <dt>topic <span class="property-type">string</span></dt>
+        <dd>Contains <i>RGB message</i> string.</dd>
+    </dl>
+    
+    <h3>Details</h3>
+    <p>The <code>msg.payload</code> contains:
+    </p>
+    <dl class="message-properties">
+        <dt>frame <span class="property-type">Buffer[15]</span></dt> 
+        <dd>15 bytes buffer containing raw Hapcan's CAN frame.</dd>
+
+        <dt>frameType <span class="property-type">number</span></dt> 
+        <dd>Hapcan frame type number.</dd>
+
+        <dt>isAnswer <span class="property-type">bool</span></dt> 
+        <dd><i>True</i> if message is an answer for request.</dd>
+
+        <dt>node <span class="property-type">number</span></dt> 
+        <dd>Sender module node number.</dd>
+        
+        <dt>group <span class="property-type">number</span></dt> 
+        <dd>Sender module group number.</dd>
+
+        <dt>status <span class="property-type">number</span></dt> 
+        <dd>Current channel output value 0x00-0xFF.</dd>
+
+        <dt>relay <span class="property-type">string</span></dt> 
+        <dd>Current status of all channels. <i>OFF</i> if all channels are turned off, <i>ON</i> if
+            master channel and any other channel is turned on. The value is available only for 
+            master channel message. In other cases the value is <i>undefined</i>.</dd>
+
+        <dt>enabled <span class="property-type">bool</span></dt> 
+        <dd><i>True</i> if current channel is turned on.</dd>
+
+        <dt>channel <span class="property-type">number</span></dt> 
+        <dd>Current channel number 0x01-0x04.</dd>
+
+        <dt>channelName <span class="property-type">string</span></dt> 
+        <dd>String value of current channel. Can be <i>RED</i>, <i>GREEN</i>, <i>BLUE</i> or <i>MASTER</i>.</dd>
+
+        <dt> <span class="property-type"></span></dt> 
+        <dd></dd>
+        
+        
+    </dl>
+
+    <p>
+        This node receives RGB LED Controller status messages of the selected module in group. The output is fired when channel filter matches the status message.
+    </p>
+
+    <h3>References</h3>
+    <ul>
+        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm">Hapcan RGB Controller</a> - module firmware notes.</li>
+    </ul>
+
+</script>
