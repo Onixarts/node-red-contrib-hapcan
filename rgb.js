@@ -63,11 +63,6 @@ module.exports = function(RED) {
                             return;
                         }
                     }
-                    if( msg.payload.hasOwnProperty('state'))
-                    {
-                        if(!parseAction(msg.payload.state, control))
-                            return;
-                    }
                     if( msg.payload.hasOwnProperty('channel'))
                     {
                         control.channel = 0;
@@ -90,6 +85,11 @@ module.exports = function(RED) {
                                     return;
                             }
                         }
+                        if( msg.payload.hasOwnProperty('state'))
+                        {
+                            if(!parseAction(msg.payload.state, control))
+                                return;
+                        }                        
                         else
                         {
                             node.error('Invalid channel type: '+ typeof msg.payload.channel); 
