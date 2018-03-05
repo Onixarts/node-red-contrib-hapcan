@@ -22,6 +22,7 @@
       "rtc": "rtc.js",
       "temp" : "temp.js",
       "rgb" : "rgb.js",
+      "blind": "blind.js",
       "hapcan-gateway": "hapcan-gateway.js"
     }
 }
