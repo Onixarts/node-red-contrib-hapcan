@@ -31,7 +31,7 @@ module.exports = function(RED) {
         node.on('input', function(msg) {
             
             var control = { 
-                channels: 0x01 << (Number(node.channel)-1), 
+                channels: Number(node.channel),
                 action: Number(node.defaultAction),
                 delay: 0x00
             }

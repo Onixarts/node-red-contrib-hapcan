@@ -7,7 +7,7 @@
             name: {value:""},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
-            channel: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 6);}},
+            channel: {value: 1, required: true,validate: function(val){return (val >= 0 && val <= 0x3F);}},
             defaultAction: {value: 0x02, required: true, validate: function(val) {return (val>=-1 && val <0x03)}}
         },
         inputs:1,
@@ -15,7 +15,15 @@
         icon: "relay-output.png",
         align: 'right',
         label: function() {
-            return (this.name||"relay output") + ' ('+this.node+','+this.group+') ['+this.channel+']';
+            var selectedChannels="";
+            for(var i = 0; i < 6; i++)
+            {
+                if((this.channel & (1<<i)) !== 0)
+                    selectedChannels += (selectedChannels===''?'':',')+(i+1);
+            }
+            if(selectedChannels === '')
+                selectedChannels = '-';
+            return (this.name||"relay output") + ' ('+this.node+','+this.group+') ['+selectedChannels+']';
         },
         labelStyle: function() { return this.name?"node_label_italic":""; } ,
         inputLabels: "relay control message",
@@ -38,13 +46,30 @@
             
             $("#node-input-node").append(nodeOptions);
             $("#node-input-group").append(groupOptions);
+
+            if( this.channel & 1 !== 0 )
+                $("#channel1").prop('checked', true);
+            if( (this.channel & 2) !== 0 )
+                $("#channel2").prop('checked', true);
+            if( (this.channel & 4) !== 0 )
+                $("#channel3").prop('checked', true);
+            if( (this.channel & 8) !== 0 )
+                $("#channel4").prop('checked', true);
+            if( (this.channel & 16) !== 0 )
+                $("#channel5").prop('checked', true);
+            if( (this.channel & 32) !== 0 )
+                $("#channel6").prop('checked', true);
+        },
+        oneditsave: function(){
+            this.channel = 0;
+            this.channel |= $("#channel1").is(":checked") ? 1 : 0;
+            this.channel |= $("#channel2").is(":checked") ? 2 : 0;
+            this.channel |= $("#channel3").is(":checked") ? 4 : 0;
+            this.channel |= $("#channel4").is(":checked") ? 8 : 0;
+            this.channel |= $("#channel5").is(":checked") ? 16 : 0;
+            this.channel |= $("#channel6").is(":checked") ? 32 : 0;
         }
         });
-
-    function validateNodeGroup(val0)
-    {
-        return (val > 0 && val < 256);
-    }
 </script>
 
 <script type="text/x-red" data-template-name="relay-output">
@@ -65,7 +90,7 @@
         <select id="node-input-group"></select>
     </div>
     <div class="form-row">
-        <label for="node-input-defaultAction"><i class="fas fa-play"></i> Default action</label>
+        <label for="node-input-defaultAction"><i class="fa fa-play"></i> Default action</label>
         <select id="node-input-defaultAction">
                 <option value="-1">Do nothing</option>
                 <option value="0">Turn OFF</option>
@@ -74,21 +99,19 @@
         </select>
     </div>    
     <div class="form-row">
-            <label for="node-input-channel"><i class="fa fa-sign-out"></i> Channel</label>
-            <select id="node-input-channel">
-                    <option selected="selected" value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-            </select>
+        <label for="node-input-channel" style="width: 150px;"><i class="fa fa-sign-out"></i> Channels</label><br>
+        <input style="width: 10%;" id="channel1" type="checkbox" value="1">1
+        <input style="width: 10%;" id="channel2" type="checkbox" value="2">2
+        <input style="width: 10%;" id="channel3" type="checkbox" value="4">3
+        <input style="width: 10%;" id="channel4" type="checkbox" value="8">4
+        <input style="width: 10%;" id="channel5" type="checkbox" value="16">5
+        <input style="width: 10%;" id="channel6" type="checkbox" value="32">6
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="relay-output">
     <p>Allows controlling of the Hapcan RELAY UNIV-3.2.X module.</p>
-    <p>The node allows you to control single relay output or whole relay module. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    <p>The node allows you to control relay module outputs. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
     
     <h3>Inputs</h3>
     <dl class="message-properties">
@@ -115,12 +138,12 @@
         <dd>Output will turn ON when value is true, otherwise it will turn OFF. This type is easy to use with UI switch control.</dd>
 
         <dt>object</dt> 
-        <dd>Gives an ability to control whole Relay module by providing values. See details below.</dd>
+        <dd>Gives an ability to override node default parameters. See details below.</dd>
         
     </dl>
     <h3>Full control object definition</h3>
     <p>
-        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control whole Relay module. Below are the possible properties list that can be specified. 
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control Relay module. Below are the possible properties list that can be specified. 
         If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
     </p>
     <dl class="message-properties">
