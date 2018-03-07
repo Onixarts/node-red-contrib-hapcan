@@ -54,9 +54,7 @@
             hapcanMessage.min = node.bcd2number( hapcanMessage.frame[11]);
             hapcanMessage.sec = node.bcd2number( hapcanMessage.frame[12]);
 
-            data.topic = 'RTC message';
-
-            node.send(data);
+            node.send({topic: 'RTC message', payload: hapcanMessage});
         });
 
         this.on('close', function() {

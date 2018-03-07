@@ -259,9 +259,7 @@ module.exports = function(RED) {
                 case 0x04: hapcanMessage.channelName = "MASTER"; break;
             }
 
-            data.topic = 'RGB message';
-
-            node.send(data);
+            node.send({topic: 'RGB message', payload: hapcanMessage});
         });
 
         this.on('close', function() {

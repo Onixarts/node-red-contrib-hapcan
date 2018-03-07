@@ -187,9 +187,7 @@ module.exports = function(RED) {
             }
             hapcanMessage.channel = hapcanMessage.frame[7];
 
-            data.topic = 'Blind message';
-
-            node.send(data);
+            node.send({topic: 'Blind message', payload: hapcanMessage});
         });
 
         this.on('close', function() {

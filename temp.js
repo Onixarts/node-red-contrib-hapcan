@@ -38,9 +38,7 @@
             hapcanMessage.type = hapcanMessage.frame[7];
             hapcanMessage.temp = Number(Number(((hapcanMessage.frame[8] * 256) + hapcanMessage.frame[9]) * 0.0625).toFixed(1));
 
-            data.topic = 'Temperature sensor message';
-
-            node.send(data);
+            node.send({topic: 'Temperature sensor message', payload: hapcanMessage});
         });
 
         this.on('close', function() {
