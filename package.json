@@ -23,6 +23,8 @@
       "temp" : "temp.js",
       "rgb" : "rgb.js",
       "blind": "blind.js",
+      "button": "button.js",
+      "state": "state.js",
       "hapcan-gateway": "hapcan-gateway.js"
     }
 }
