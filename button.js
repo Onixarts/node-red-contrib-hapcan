@@ -43,11 +43,13 @@
                 case 0x00: hapcanMessage.state = "OPEN";break;
                 case 0x01: hapcanMessage.state = "DISABLED"; break;
 				case 0xFF: hapcanMessage.state = "CLOSED";break;
-				case 0xFE: hapcanMessage.state = "CLOSED_HELD_400";break;
-				case 0xFD: hapcanMessage.state = "CLOSED_HELD_4000";break;
-				case 0xFC: hapcanMessage.state = "CLOSED_OPENED_400";break;
-				case 0xFB: hapcanMessage.state = "CLOSED_OPENED_400_4000";break;
-				case 0xFA: hapcanMessage.state = "CLOSED_OPENED_4000";break;
+				case 0xFE: hapcanMessage.state = "HELD_400ms";break;
+				case 0xFD: hapcanMessage.state = "HELD_4s";break;
+				case 0xFC: hapcanMessage.state = "RELEASED_BEFORE_400ms";break;
+				case 0xFB: hapcanMessage.state = "RELEASED_AFTER_400ms";break;
+                case 0xFA: hapcanMessage.state = "RELEASED_AFTER_4s";break;
+                case 0xF1: hapcanMessage.state = "HELD_1s";break;
+                case 0xFA: hapcanMessage.state = "RELEASED_AFTER_1s";break;
                 default: 
                     node.warn('Button state value unknown:' + hapcanMessage.frame[8]);
                     hapcanMessage.state = 'undefined';

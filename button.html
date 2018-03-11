@@ -136,8 +136,9 @@
         <dd>Sender module group number.</dd>
 
         <dt>state <span class="property-type">string</span></dt>
-        <dd>Channel's state, can be: OPEN, CLOSED, DISABLED, CLOSED_HELD_400, CLOSED_HELD_4000, 
-            CLOSED_OPENED_400, CLOSED_OPENED_400_4000, CLOSED_OPENED_4000.</dd>
+        <dd>Channel's state, can be: OPEN, CLOSED, DISABLED, HELD_400ms, HELD_4s,
+                RELEASED_BEFORE_400ms, RELEASED_AFTER_400ms, RELEASED_AFTER_4s,
+                and additional HELD_1s, RELEASED_AFTER_1s values implement in <a href="https://github.com/Onixarts/Hapcanuino/tree/master/SubModules/HapcanButton">Hapcanuino submodule</a></dd>
 
         <dt>led <span class="property-type">string</span></dt>
         <dd>LED state in case of module support LED output. Possible values are: ON, OFF, DISABLED. If module does not
