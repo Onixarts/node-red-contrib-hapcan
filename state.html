@@ -1,0 +1,102 @@
+<script type="text/javascript">
+    RED.nodes.registerType('state-output',{
+        category: 'hapcan',
+        color: '#C1C1C1',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 0, required: true, validate: function(val){return (val >= 0 && val < 256);}},
+        },
+        inputs:1,
+        outputs:0,
+        icon: "relay-output.png",
+        align: 'right',
+        label: function() {
+            return (this.name||"state output") + ' ('+this.node+','+this.group+')';
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        inputLabels: "state message",
+        oneditprepare: function() {
+            var nodeOptions = '';
+            var groupOptions = '';
+            for(var i = 0; i < 256; i++)
+            {
+                var selectedNode = '';
+                if((Number(this.node) === i))
+                    selectedNode = 'selected="selected"';
+                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+			}
+            for(var i = 1; i < 256; i++)
+            {
+                var selectedGroup = '';
+                if((Number(this.group) === i))
+                    selectedGroup = 'selected="selected"';
+                
+                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+            }
+            
+            $("#node-input-node").append(nodeOptions);
+            $("#node-input-group").append(groupOptions)
+
+        }
+        });
+</script>
+
+<script type="text/x-red" data-template-name="state-output">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
+        <select id="node-input-group"></select>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="state-output">
+    <p>Wysyła ramkę zapytania o status modułu.</p>
+    <p>Wybranie mode=0 wysyła zapytanie o status grupy. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">string | number | bool | any | object</span></dt>
+        <dd>Any input message will perform default action.</dd>
+
+    </dl>
+    
+    <h3>Details</h3>
+    <p>The default node behaviour on any input message is to execute the action specified in properties. 
+        When <code>msg.topic</code> is set to <i>control</i> then input value will control node in several ways. In control mode the <code>msg.payload</code> 
+        can be one of the following types:
+    </p>
+    <dl class="message-properties">
+
+        <dt>object</dt> 
+        <dd>Gives an ability to override node default parameters. See details below.</dd>
+        
+    </dl>
+    <h3>Full control object definition</h3>
+    <p>
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control Relay module. Below are the possible properties list that can be specified. 
+        If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
+    </p>
+    <dl class="message-properties">
+    </dl>
+
+    <h3>References</h3>
+    <ul>
+        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-1-x-x.htm">Hapcan state</a> - module firmware notes.</li>
+    </ul>
+
+</script>
+
+
