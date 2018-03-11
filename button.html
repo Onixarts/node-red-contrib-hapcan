@@ -7,7 +7,7 @@
             name: {value:""},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
-            channelFilter: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 256);}},
+            channelFilter: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 16384);}},
         },
         inputs:0,
         outputs:1,
@@ -38,34 +38,30 @@
             $("#node-input-node").append(nodeOptions);
             $("#node-input-group").append(groupOptions);
             
-			if( this.channelFilter & 1 !== 0 )
-                $("#channel1").prop('checked', true);
-            if( (this.channelFilter & 2) !== 0 )
-                $("#channel2").prop('checked', true);
-            if( (this.channelFilter & 4) !== 0 )
-                $("#channel3").prop('checked', true);
-            if( (this.channelFilter & 8) !== 0 )
-                $("#channel4").prop('checked', true);
-            if( (this.channelFilter & 16) !== 0 )
-                $("#channel5").prop('checked', true);
-            if(( this.channelFilter & 32) !== 0 )
-                $("#channel6").prop('checked', true);
-            if(( this.channelFilter & 64) !== 0 )
-                $("#channel7").prop('checked', true);
-            if(( this.channelFilter & 128) !== 0 )
-                $("#channel8").prop('checked', true);
-                
+            var channelFilterOptionsBase = "";
+            var channelFilterOptionsExtended = "";
+            for (var i = 0; i < 14; i++ )
+            {
+                if( i === 6)
+                    channelFilterOptionsBase += '<br>';
+                var checked = ((this.channelFilter & (1 << i)) !== 0) ? 'checked' : '';
+                var options = '<label style="width: 100%; display: block;"><input style="width: auto; height: auto; margin-right: 10px;" id="channel'+(i+1)+'" type="checkbox" value="'+(1<<i)+'" '+checked+'>'+(i+1)+'</label>';
+                if( i < 8 )
+                    channelFilterOptionsBase += options;
+                else
+                    channelFilterOptionsExtended += options;
+            }
+
+            $("#channel-filter-options-base").append(channelFilterOptionsBase);
+            $("#channel-filter-options-extended").append(channelFilterOptionsExtended);
         },
         oneditsave: function(){
+
             this.channelFilter = 0;
-            this.channelFilter |= $("#channel1").is(":checked") ? 1 : 0;
-            this.channelFilter |= $("#channel2").is(":checked") ? 2 : 0;
-            this.channelFilter |= $("#channel3").is(":checked") ? 4 : 0;
-            this.channelFilter |= $("#channel4").is(":checked") ? 8 : 0;
-            this.channelFilter |= $("#channel5").is(":checked") ? 16 : 0;
-            this.channelFilter |= $("#channel6").is(":checked") ? 32 : 0;
-            this.channelFilter |= $("#channel6").is(":checked") ? 64 : 0;
-            this.channelFilter |= $("#channel6").is(":checked") ? 128 : 0;
+            for(var i = 0; i < 14; i++)
+            {
+                this.channelFilter |= $("#channel"+(i+1)).is(":checked") ? (1<<i) : 0;
+            }
         }
         });
 
@@ -90,25 +86,34 @@
     </div>
     <div class="form-row">
         <label for="node-input-channel" style="width: 150px;"><i class="fa fa-sign-out"></i> Channel filter</label><br>
-        <input style="width: 10%;" id="channel1" type="checkbox" value="1">1 
-        <input style="width: 10%;" id="channel2" type="checkbox" value="2">2
-        <input style="width: 10%;" id="channel3" type="checkbox" value="4">3
-        <input style="width: 10%;" id="channel4" type="checkbox" value="8">4
-        <input style="width: 10%;" id="channel5" type="checkbox" value="16">5
-        <input style="width: 10%;" id="channel6" type="checkbox" value="32">6
-        <input style="width: 10%;" id="channel6" type="checkbox" value="64">7
-        <input style="width: 10%;" id="channel6" type="checkbox" value="128">8
+        <div>
+            <div id="channel-filter-options-base" style="float:left; width: 50%;">
+                <span style="opacity: 0.7; font-size: 12px;">Button 3.1.X base inputs</span><br>
+            </div>
+            <div id="channel-filter-options-extended" style="float:left; width: 50%;">
+                <span style="opacity: 0.7; font-size: 12px;">Button 3.1.3 extended inputs</span><br>
+            </div>
+        </div>
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="button-input">
-    <p>Receives Hapcan button frame from UNIV-3.1.0 modules.<br />8 CHANNEL DIN RAIL BOX BUTTON</p>
+    <p>Receives Hapcan button frame from UNIV-3.1.X modules.</p>
+    <ul>
+        <li>8 channel DIN RAIL button UNIV-3.1.0</li>
+        <li>6 channel back box touch button with led UNIV-3.1.2</li>
+        <li>14 channel back box button with led UNIV-3.1.3</li>
+    </ul>
+    
     <p>The node emit button messages sent by button modules. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
     
     <h3>Output</h3>
     <dl class="message-properties">
         <dt>payload <span class="property-type">object</span></dt>
         <dd>Hapcan message object with button data.</dd>
+
+        <dt>topic <span class="property-type">string</span></dt>
+        <dd>Contains <i>Button message</i> string.</dd>
     </dl>
     
     <h3>Details</h3>
@@ -131,7 +136,13 @@
         <dd>Sender module group number.</dd>
 
         <dt>state <span class="property-type">string</span></dt>
-        <dd>Channel's state, can be <i>OPEN</i>, <i>CLOSED</i>.</dd>            
+        <dd>Channel's state, can be: OPEN, CLOSED, DISABLED, CLOSED_HELD_400, CLOSED_HELD_4000, 
+            CLOSED_OPENED_400, CLOSED_OPENED_400_4000, CLOSED_OPENED_4000.</dd>
+
+        <dt>led <span class="property-type">string</span></dt>
+        <dd>LED state in case of module support LED output. Possible values are: ON, OFF, DISABLED. If module does not
+            support LED output, the value is OFF.
+        </dd>
 
         <dt>channel <span class="property-type">number</span></dt>
         <dd>Button channel that has changed.</dd>
