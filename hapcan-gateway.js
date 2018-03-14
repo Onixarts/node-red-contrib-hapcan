@@ -26,6 +26,7 @@ module.exports = function (RED) {
         this.incommingMessage.fill(0xFF);
         this.incommingMessageIndex = 0;
         this.eventEmitter = new events.EventEmitter();
+        this.eventEmitter.setMaxListeners(50);
 
         this.connectionStatus = ConnectionStatus.notConnected;
         
