@@ -9,6 +9,10 @@ module.exports = function(RED) {
         node.name = config.name;
         node.channel = config.channel;
         node.defaultAction = config.defaultAction;
+        node.UNIV = Number(config.UNIV);
+        if( node.UNIV == undefined)
+            node.UNIV = 3;
+
         node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + ("00" + node.channel).slice (-3)+'_';
 
         this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
@@ -84,9 +88,18 @@ module.exports = function(RED) {
 
             var hapcanMsg = Buffer.from([0xAA, 0x10,0xA0, 0xF0,0xF0, 0xFF,0xFF, node.node,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
             
-            hapcanMsg[5] = control.action;
-            hapcanMsg[6] = control.channels;
-            hapcanMsg[9] = control.delay;
+            if(node.UNIV === 1)
+            {
+                hapcanMsg[10] = control.action;
+                hapcanMsg[11] = control.channels;
+                hapcanMsg[12] = control.delay;   
+            }
+            else
+            {
+                hapcanMsg[5] = control.action;
+                hapcanMsg[6] = control.channels;
+                hapcanMsg[9] = control.delay;
+            }
 
             msg.payload = hapcanMsg;
             msg.topic = 'control';

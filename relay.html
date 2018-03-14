@@ -8,7 +8,8 @@
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             channel: {value: 1, required: true,validate: function(val){return (val >= 0 && val <= 0x3F);}},
-            defaultAction: {value: 0x02, required: true, validate: function(val) {return (val>=-1 && val <0x03)}}
+            defaultAction: {value: 0x02, required: true, validate: function(val) {return (val>=-1 && val <0x03)}},
+            UNIV : {value: 3, required: true, validate: function(val) {return (val==1 || val == 3 || val==undefined)}}
         },
         inputs:1,
         outputs:0,
@@ -59,6 +60,12 @@
                 $("#channel5").prop('checked', true);
             if( (this.channel & 32) !== 0 )
                 $("#channel6").prop('checked', true);
+            
+            if(this.UNIV == undefined )
+            {
+                this.UNIV = 3;
+                $('#node-input-UNIV').val(3);
+            }
         },
         oneditsave: function(){
             this.channel = 0;
@@ -107,10 +114,19 @@
         <input style="width: 10%;" id="channel5" type="checkbox" value="16">5
         <input style="width: 10%;" id="channel6" type="checkbox" value="32">6
     </div>
+    <hr>
+    <div class="form-row">
+        <label for="node-input-UNIV"><i class="fa fa-cubes"></i> UNIV</label>
+        <select id="node-input-UNIV">
+                <option value="1">UNIV 1.0.2.X module</option>
+                <option selected="selected" value="3">UNIV 3.2.X module</option>
+        </select>
+    </div>    
+
 </script>
 
 <script type="text/x-red" data-help-name="relay-output">
-    <p>Allows controlling of the Hapcan RELAY UNIV-3.2.X module.</p>
+    <p>Allows controlling of the Hapcan RELAY UNIV-3.2.X and UNIV-1.0.2.X modules.</p>
     <p>The node allows you to control relay module outputs. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
     
     <h3>Inputs</h3>
@@ -156,10 +172,13 @@
         <!-- <dt>delay <span class="property-type">string | number</span></dt></dt> 
         <dd>Delay value as a string or Hapcan delay value.</dd> -->
     </dl>
-
+    
+    <p>Default module version is UNIV-3. You can select UNIV-1 support in settings.</p>
+    
     <h3>References</h3>
     <ul>
-        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm">Hapcan relays</a> - module firmware notes.</li>
+        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm">Hapcan relays UNIV-3</a> - module firmware notes.</li>
+        <li><a href="http://hapcan.com/devices/universal/univ_v1-0/univ_v1-0-2-0/index.htm">Hapcan relays UNIV-1</a> - firmware notes.</li>
     </ul>
 
 </script>
@@ -218,7 +237,7 @@
                 $("#channel5").prop('checked', true);
             if(( this.channelFilter & 32) !== 0 )
                 $("#channel6").prop('checked', true);
-                
+                      
         },
         oneditsave: function(){
             this.channelFilter = 0;
@@ -259,10 +278,11 @@
         <input style="width: 10%;" id="channel5" type="checkbox" value="16">5
         <input style="width: 10%;" id="channel6" type="checkbox" value="32">6
     </div>
+  
 </script>
 
 <script type="text/x-red" data-help-name="relay-input">
-    <p>Receives Hapcan RELAY UNIV-3.2.X status messages.</p>
+    <p>Receives Hapcan RELAY UNIV-3.2.X and UNIV-1.0.2.X status messages.</p>
     <p>The node emit relay status messages. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
     
     <h3>Output</h3>
