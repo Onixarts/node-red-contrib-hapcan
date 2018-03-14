@@ -195,6 +195,8 @@
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             channelFilter: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 256);}},
+            userFieldStateON: {value: ""},
+            userFieldStateOFF: {value: ""}
         },
         inputs:0,
         outputs:1,
@@ -237,7 +239,6 @@
                 $("#channel5").prop('checked', true);
             if(( this.channelFilter & 32) !== 0 )
                 $("#channel6").prop('checked', true);
-                      
         },
         oneditsave: function(){
             this.channelFilter = 0;
@@ -277,6 +278,18 @@
         <input style="width: 10%;" id="channel4" type="checkbox" value="8">4
         <input style="width: 10%;" id="channel5" type="checkbox" value="16">5
         <input style="width: 10%;" id="channel6" type="checkbox" value="32">6
+    </div>
+    <hr>
+    <div class="form-row">
+        <label style="width: auto;"><i class="fa fa-envelope-o"></i> Set <b>userField</b> value for states:</label>
+    </div>
+    <div class="form-row">
+        <label style="padding-left: 25px; margin-right: -25px;" for="node-input-userFieldStateON"><i class="fa fa-circle"></i> ON</label>
+        <input type="text" id="node-input-userFieldStateON" >
+    </div>
+    <div class="form-row">
+        <label style="padding-left: 25px; margin-right: -25px;" for="node-input-userFieldStateOFF"><i class="fa fa-circle"></i> OFF</label>
+        <input type="text" id="node-input-userFieldStateOFF" >
     </div>
   
 </script>
@@ -319,6 +332,9 @@
         <dt>channel <span class="property-type">number</span></dt>
         <dd>Relay channel that has changed.</dd>
         
+        <dt>userField <span class="property-type">string</span></dt>
+        <dd>User defined value for each state.</dd>
+
     </dl>
     <p>
         This node receives relay status messages of the selected module in group. The output is fired when channel filter matches the status message.

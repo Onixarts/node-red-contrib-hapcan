@@ -159,6 +159,8 @@ module.exports = function(RED) {
         node.node = config.node;
         node.name = config.name;
         node.channelFilter = config.channelFilter;
+        node.userFieldStateON = config.userFieldStateON;
+        node.userFieldStateOFF = config.userFieldStateOFF;
         
         node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + '_';
 
@@ -192,6 +194,7 @@ module.exports = function(RED) {
             hapcanMessage.state = hapcanMessage.frame[8] === 0x00 ? 'OFF' : 'ON';
             hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
             hapcanMessage.channel = hapcanMessage.frame[7];
+            hapcanMessage.userField = hapcanMessage.state === 'ON' ? node.userFieldStateON : node.userFieldStateOFF;
 
             node.send({topic: 'Relay message', payload: hapcanMessage});
         });
