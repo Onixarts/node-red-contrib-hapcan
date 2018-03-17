@@ -46,7 +46,7 @@ module.exports = function(RED) {
                 else if (Array.isArray(msg.payload)){
                     if (typeof msg.payload[0] === 'number'){
                         if (isGroupValid(msg.payload[0])) {
-                            control[0] = {gropu: msg.payload[0],
+                            control[0] = {group: msg.payload[0],
                                         node : 0};
                             if (isNodeValid(msg.payload[1])) {
                                 control[0].node = msg.payload[1];
@@ -57,7 +57,7 @@ module.exports = function(RED) {
                         for (var i=0; i < msg.payload.length; i++) {
                             if (msg.payload[i].hasOwnProperty('group')) {
                                 if (isGroupValid(msg.payload[i].group)) {
-                                    control[0] = {group: msg.payload[i].group,
+                                    control[i] = {group: msg.payload[i].group,
                                                 node: 0};
                                     if (msg.payload[i].hasOwnProperty('node')) {
                                         if (isNodeValid(msg.payload[i].node)) {
@@ -65,6 +65,8 @@ module.exports = function(RED) {
                                         }
                                     }
                                 }
+                                node.log("msg:"+msg.payload[i].group+":"+msg.payload[i].node);
+                                node.log("control:"+control[i].group+":"+control[i].node);
                             }
                         }
                     }
@@ -89,7 +91,7 @@ module.exports = function(RED) {
 
             }
               
-            for (var i=0; i<control.length; i++){
+/*            for (var i=0; i<control.length; i++){
                 if (control[i].node === 0 ) {
                     var hapcanMsg = Buffer.from([0xAA, 0x10,0x80, 0xF0,0xF0, 0xFF,0xFF, 0x00,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
                 }
@@ -99,7 +101,10 @@ module.exports = function(RED) {
                 msg.payload = hapcanMsg;
                 msg.topic = 'control';
                 node.gateway.send(msg);
-            }
+            }    
+*/
+                sendMessage(control, node, msg);
+            
         });
         this.on('close', function() {
             // tidy up any state
@@ -119,7 +124,28 @@ module.exports = function(RED) {
                 node.error('Invalid group: '+ groupNr);
             return isValid;
         }
-
+        function sleep(ms){
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        async function demo(){
+            node.log("poczatek");
+            await sleep(2000);
+            node.log("2s pozniej");
+        }
+        async function sendMessage(control, node, msg){
+            for (var i=0; i<control.length; i++){
+                if (control[i].node === 0 ) {
+                    var hapcanMsg = Buffer.from([0xAA, 0x10,0x80, 0xF0,0xF0, 0xFF,0xFF, 0x00,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
+                }
+                else {
+                    var hapcanMsg = Buffer.from([0xAA, 0x10,0x90, 0xF0,0xF0, 0xFF,0xFF, control[i].node,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
+                }
+                msg.payload = hapcanMsg;
+                msg.topic = 'control';
+                await sleep(500+(i*200));
+                node.gateway.send(msg);
+            }
+        }
     }
     RED.nodes.registerType("state-output",StateOutputNode);
 
