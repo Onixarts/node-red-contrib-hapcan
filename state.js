@@ -17,7 +17,7 @@ module.exports = function(RED) {
         }
         else
         {
-            node.error('Invalid configuration. Gateway is required.'); 
+            node.error('Invalid configuration. Gateway is required.');
         }
 
         this.on('close', function(done) {
@@ -27,21 +27,98 @@ module.exports = function(RED) {
         });
 
         node.on('input', function(msg) {
-			// jeżeli node=0 wysyła zapytanie o status grupy
-			if (node.node == 0) {
-				var hapcanMsg = Buffer.from([0xAA, 0x10,0x80, 0xF0,0xF0, 0xFF,0xFF, 0x00,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);				
-			} 
-			else {
-				var hapcanMsg = Buffer.from([0xAA, 0x10,0x90, 0xF0,0xF0, 0xFF,0xFF, node.node,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-			}
-            
-            msg.payload = hapcanMsg;
-            msg.topic = 'control';
-            node.gateway.send(msg);
+   
+          var control=[];
+          control[0] =  { node: Number(node.node),
+                       group: Number(node.group)
+          };
+
+          if(msg.topic === "control" )
+          {
+            if( msg.hasOwnProperty('payload'))
+            {
+                if(typeof msg.payload === 'number') {
+                    if (isGroupValid(msg.payload)) {
+                        control[0] = {group: msg.payload,
+                                    node: 0};
+                    }
+                }
+                else if (Array.isArray(msg.payload)){
+                    if (typeof msg.payload[0] === 'number'){
+                        if (isGroupValid(msg.payload[0])) {
+                            control[0] = {gropu: msg.payload[0],
+                                        node : 0};
+                            if (isNodeValid(msg.payload[1])) {
+                                control[0].node = msg.payload[1];
+                            } 
+                        }
+                    }
+                    else if(typeof msg.payload[0] === 'object') {
+                        for (var i=0; i < msg.payload.length; i++) {
+                            if (msg.payload[i].hasOwnProperty('group')) {
+                                if (isGroupValid(msg.payload[i].group)) {
+                                    control[0] = {group: msg.payload[i].group,
+                                                node: 0};
+                                    if (msg.payload[i].hasOwnProperty('node')) {
+                                        if (isNodeValid(msg.payload[i].node)) {
+                                            control[i].node = msg.payload[i].node
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else if(typeof msg.payload === 'object') { 
+                    if (msg.payload.hasOwnProperty('group')){
+                        if (isGroupValid(msg.payload.group)) {
+                            control[0] = {group: msg.payload.group,
+                                        node : 0 };
+                            if (msg.payload.hasOwnProperty('node')) {
+                                if (isNodeValid(msg.payload.node)) {
+                                    control[0].node = msg.payload.node;
+                                }
+                            } 
+                        }
+                    }
+                }
+                else {
+                    node.log("nieprawidłowa wartość msg.payload");
+                }
+              }
+
+            }
+              
+            for (var i=0; i<control.length; i++){
+                if (control[i].node === 0 ) {
+                    var hapcanMsg = Buffer.from([0xAA, 0x10,0x80, 0xF0,0xF0, 0xFF,0xFF, 0x00,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
+                }
+                else {
+                    var hapcanMsg = Buffer.from([0xAA, 0x10,0x90, 0xF0,0xF0, 0xFF,0xFF, control[i].node,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
+                }
+                msg.payload = hapcanMsg;
+                msg.topic = 'control';
+                node.gateway.send(msg);
+            }
         });
         this.on('close', function() {
             // tidy up any state
         });
+
+        function isNodeValid(nodeNr)
+        {
+            var isValid = (nodeNr >= 0 && nodeNr < 255);
+            if(!isValid)
+                node.error('Invalid node: '+ nodeNr);
+            return isValid;
+        }
+        function isGroupValid(groupNr)
+        {
+            var isValid = (groupNr > 0 && groupNr < 255);
+            if(!isValid)
+                node.error('Invalid group: '+ groupNr);
+            return isValid;
+        }
 
     }
     RED.nodes.registerType("state-output",StateOutputNode);
