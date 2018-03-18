@@ -7,6 +7,7 @@ module.exports = function(RED) {
         node.group = config.group;
         node.node = config.node;
         node.name = config.name;
+        node.delay = config.delay;
         node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) +'_';
 
         this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
@@ -91,19 +92,7 @@ module.exports = function(RED) {
 
             }
               
-/*            for (var i=0; i<control.length; i++){
-                if (control[i].node === 0 ) {
-                    var hapcanMsg = Buffer.from([0xAA, 0x10,0x80, 0xF0,0xF0, 0xFF,0xFF, 0x00,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
-                }
-                else {
-                    var hapcanMsg = Buffer.from([0xAA, 0x10,0x90, 0xF0,0xF0, 0xFF,0xFF, control[i].node,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
-                }
-                msg.payload = hapcanMsg;
-                msg.topic = 'control';
-                node.gateway.send(msg);
-            }    
-*/
-                sendMessage(control, node, msg);
+            sendMessage(control, node, msg);
             
         });
         this.on('close', function() {
@@ -127,11 +116,6 @@ module.exports = function(RED) {
         function sleep(ms){
             return new Promise(resolve => setTimeout(resolve, ms));
         }
-        async function demo(){
-            node.log("poczatek");
-            await sleep(2000);
-            node.log("2s pozniej");
-        }
         async function sendMessage(control, node, msg){
             for (var i=0; i<control.length; i++){
                 if (control[i].node === 0 ) {
@@ -142,7 +126,7 @@ module.exports = function(RED) {
                 }
                 msg.payload = hapcanMsg;
                 msg.topic = 'control';
-                await sleep(500+(i*200));
+                await sleep(node.delay);
                 node.gateway.send(msg);
             }
         }
