@@ -71,47 +71,48 @@
         <select id="node-input-group"></select>
     </div>
     <div class="form-row">
-        <label for="node-input-delay"><i class="fa fa-th"></i> Delay</label>
+        <label for="node-input-delay"><i class="fa fa-clock-o"></i> Delay</label>
         <select id="node-input-delay"></select>
     </div>
 </script>
 
 <script type="text/x-red" data-help-name="state-output">
-    <p>Wysyła ramkę zapytania o status modułu.</p>
-    <p>Wybranie mode=0 wysyła zapytanie o status grupy. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    <p>Send status request frame to hapcan nodes.</p>
+    <p>If no node number is specified or 0 it will request selected group. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
     
     <h3>Inputs</h3>
     <dl class="message-properties">
         <dt>payload <span class="property-type">string | number | bool | any | object</span></dt>
         <dd>Any input message will perform default action.</dd>
 
+        <dt class="optional">topic <span class="property-type">string</span></dt>
+        <dd>Topic is optional. When a <i>control</i> value is provided it will overrides default settings and allows request status for many devices.</dd>
     </dl>
     
     <h3>Details</h3>
-    <p>The default node behaviour on any input message is to execute the action specified in properties. 
-        When <code>msg.topic</code> is set to <i>control</i> then input value will control node in several ways. In control mode the <code>msg.payload</code> 
+    <p>The default node behaviour on any input message is to send status request to the node specified in parameters. 
+        When <code>msg.topic</code> is set to <i>control</i> then input value will override default values. In control mode the <code>msg.payload</code> 
         can be one of the following types:
     </p>
     <dl class="message-properties">
+        <dt>Number</dt> 
+        <dd>Specifies group to request the status.</dd>
 
-        <dt>object</dt> 
-        <dd>Gives an ability to override node default parameters. See details below.</dd>
-        
+        <dt>Array [group, node] [group]</dt> 
+        <dd>You can specify array of group and nodes.</dd>
+
+        <dt>Object {group:, node:}</dt> 
+        <dd>You can specify group and node as object.</dd>
+
+        <dt>Array of [{group:, node:}]</dt> 
+        <dd>You can specify array of group and nodes objects.</dd>
     </dl>
-    <h3>Full control object definition</h3>
+
+    <h3>Settings</h3>
     <p>
-        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control Relay module. Below are the possible properties list that can be specified. 
-        If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
+        <b>Delay</b> - delay values in miliseconds between each group/node request. Usefull when many devices status data may flood the Hapcan bus, 
+        causes devices input buffers overflows.
     </p>
-    <dl class="message-properties">
-        <dt>payload</dt> 
-        <dd>Number - grupa do ospytania</dd>
-        <dd>Array [group, node] or [group]</dd>
-        <dd>Array of object [{group: 1, node: 1}{group:2, node: 3}{group: 3}] </dd>
-        <dd>Object {group: 1, node: 1} or {group: 3}] </dd>
-
-    </dl>
-
     <h3>References</h3>
     <ul>
         <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-1-x-x.htm">Hapcan state</a> - module firmware notes.</li>
