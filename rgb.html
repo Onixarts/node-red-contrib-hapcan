@@ -197,6 +197,8 @@
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             channelFilter: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 256);}},
+            userFieldStateON: {value: ""},
+            userFieldStateOFF: {value: ""}
         },
         inputs:0,
         outputs:1,
@@ -272,6 +274,18 @@
         <input style="width: 10%;" id="channel3" type="checkbox" value="4">Blue
         <input style="width: 10%;" id="channel4" type="checkbox" value="8">Master
     </div>
+    <hr>
+    <div class="form-row">
+        <label style="width: auto;"><i class="fa fa-envelope-o"></i> Set <b>userField</b> value for states:</label>
+    </div>
+    <div class="form-row">
+        <label style="padding-left: 25px; margin-right: -25px;" for="node-input-userFieldStateON"><i class="fa fa-circle"></i> ON</label>
+        <input type="text" id="node-input-userFieldStateON" >
+    </div>
+    <div class="form-row">
+        <label style="padding-left: 25px; margin-right: -25px;" for="node-input-userFieldStateOFF"><i class="fa fa-circle"></i> OFF</label>
+        <input type="text" id="node-input-userFieldStateOFF" >
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="rgb-input">
@@ -323,9 +337,8 @@
         <dt>channelName <span class="property-type">string</span></dt> 
         <dd>String value of current channel. Can be <i>RED</i>, <i>GREEN</i>, <i>BLUE</i> or <i>MASTER</i>.</dd>
 
-        <dt> <span class="property-type"></span></dt> 
-        <dd></dd>
-        
+        <dt>userField <span class="property-type">string</span></dt>
+        <dd>User defined value for each state.</dd>
         
     </dl>
 

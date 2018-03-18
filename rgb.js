@@ -232,6 +232,8 @@ module.exports = function(RED) {
         node.node = config.node;
         node.name = config.name;
         node.channelFilter = config.channelFilter;
+        node.userFieldStateON = config.userFieldStateON;
+        node.userFieldStateOFF = config.userFieldStateOFF;
         
         node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + '_';
 
@@ -277,6 +279,8 @@ module.exports = function(RED) {
                 case 0x03: hapcanMessage.channelName = "BLUE"; break;
                 case 0x04: hapcanMessage.channelName = "MASTER"; break;
             }
+
+            hapcanMessage.userField = hapcanMessage.enabled ? node.userFieldStateON : node.userFieldStateOFF;
 
             node.send({topic: 'RGB message', payload: hapcanMessage});
         });
