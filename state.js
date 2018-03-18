@@ -7,6 +7,7 @@ module.exports = function(RED) {
         node.group = config.group;
         node.node = config.node;
         node.name = config.name;
+        node.delay = config.delay;
         node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) +'_';
 
         this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
@@ -125,7 +126,7 @@ module.exports = function(RED) {
                 }
                 msg.payload = hapcanMsg;
                 msg.topic = 'control';
-                await sleep(1000);
+                await sleep(node.delay);
                 node.gateway.send(msg);
             }
         }

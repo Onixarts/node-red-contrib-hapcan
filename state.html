@@ -7,6 +7,7 @@
             name: {value:""},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 0, required: true, validate: function(val){return (val >= 0 && val < 256);}},
+            delay: {value: 500, required: true, validate: function(val){return (val >= 0 && val < 10000);}}
         },
         inputs:1,
         outputs:0,
@@ -20,6 +21,7 @@
         oneditprepare: function() {
             var nodeOptions = '';
             var groupOptions = '';
+            var delayOptions = '';
             for(var i = 0; i < 256; i++)
             {
                 var selectedNode = '';
@@ -35,9 +37,17 @@
                 
                 groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
             }
+            for(var i = 0; i < 10000; i+=100)
+            {
+                var selectedDelay = '';
+                if((Number(this.delay) === i))
+                    selectedDelay = 'selected="selected"';                
+                delayOptions += '<option '+ selectedDelay +' value="'+i+'">'+i+'</option>';
+            }
             
             $("#node-input-node").append(nodeOptions);
-            $("#node-input-group").append(groupOptions)
+            $("#node-input-group").append(groupOptions);
+            $("#node-input-delay").append(delayOptions);
 
         }
         });
@@ -59,6 +69,10 @@
     <div class="form-row">
         <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
         <select id="node-input-group"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-delay"><i class="fa fa-th"></i> Delay</label>
+        <select id="node-input-delay"></select>
     </div>
 </script>
 
