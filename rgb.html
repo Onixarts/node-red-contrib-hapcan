@@ -9,7 +9,8 @@
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             channel: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 4);}},
             state: {value: 0xFF, required: true, validate: function(val) {return (val>=0 && val < 256)}},
-            speed: {value: 0x00, required: true, validate: function(val) {return (val>=-1 && val <= 256)}}
+            speed: {value: 0x00, required: true, validate: function(val) {return (val>=-1 && val <= 256)}},
+            UNIV : {value: 3, required: true, validate: function(val) {return (val==1 || val == 3 || val==undefined)}}
         },
         inputs:1,
         outputs:0,
@@ -64,6 +65,12 @@
             $("#node-input-group").append(groupOptions);
             $("#node-input-state").append(stateOptions);
             $("#node-input-speed").append(speedOptions);
+
+            if(this.UNIV == undefined )
+            {
+                this.UNIV = 3;
+                $('#node-input-UNIV').val(3);
+            }            
         }
         });
 </script>
@@ -101,11 +108,20 @@
     <div class="form-row">
         <label for="node-input-speed"><i class="fa fa-clock-o"></i> Speed</label>
         <select id="node-input-speed"></select>
-    </div>    
+    </div>  
+    
+    <hr>
+    <div class="form-row">
+        <label for="node-input-UNIV"><i class="fa fa-cubes"></i> UNIV</label>
+        <select id="node-input-UNIV">
+                <option value="1">UNIV 1.0.8.X module</option>
+                <option selected="selected" value="3">UNIV 3.8.X module</option>
+        </select>
+    </div>       
 </script>
 
 <script type="text/x-red" data-help-name="rgb-output">
-    <p>Allows controlling of the Hapcan RGB LED Controller UNIV-3.8.X module.</p>
+    <p>Allows controlling of the Hapcan RGB LED Controller UNIV-3.8.X  and UNIV-1.0.8 modules.</p>
     <p>The node allows you to control single rgb channel or whole rgb module. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
     
     <h3>Inputs</h3>
@@ -156,13 +172,15 @@
 
         <dt>speed <span class="property-type">number</span></dt></dt> 
         <dd>Animation time in seconds (0-255s). The speed value affect final instruction that node will send to the Hapcan module.
-            If speed = 0 the state will change instantly. Other values will change state softly.
+            If speed = 0 the state will change instantly. Other values will change state softly. In UNIV 1.0.8 modules the speed can be set in
+            predefined times from 1, 5, 10, 15...60s. The current speed value will be rounded to available speed values.
         </dd>
     </dl>
 
     <h3>References</h3>
     <ul>
-        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm">Hapcan RGB Controller</a> - module firmware notes.</li>
+        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm">Hapcan RGB UNIV-3.8.X Controller</a> - module firmware notes.</li>
+        <li><a href="http://hapcan.com/devices/universal/univ_v1-0/univ_v1-0-8-1/index.htm">Hapcan RGB UNIV-1.0.8 Controller</a> - module firmware notes.</li>
     </ul>
 
 </script>
@@ -317,7 +335,8 @@
 
     <h3>References</h3>
     <ul>
-        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm">Hapcan RGB Controller</a> - module firmware notes.</li>
+        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm">Hapcan RGB UNIV-3.8.X Controller</a> - module firmware notes.</li>
+        <li><a href="http://hapcan.com/devices/universal/univ_v1-0/univ_v1-0-8-1/index.htm">Hapcan RGB UNIV-1.0.8 Controller</a> - module firmware notes.</li>
     </ul>
 
 </script>

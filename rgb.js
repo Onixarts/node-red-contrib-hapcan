@@ -10,6 +10,9 @@ module.exports = function(RED) {
         node.channel = config.channel;
         node.state = config.state;
         node.speed = config.speed;
+        node.UNIV = Number(config.UNIV);
+        if( node.UNIV == undefined)
+            node.UNIV = 3;   
         
         node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + ("00" + node.channel).slice (-3)+'_';
 
@@ -116,6 +119,13 @@ module.exports = function(RED) {
             if( control.sendSpeedMessage)
             {   
                 let command = 0x1B + control.channel;
+                if( node.UNIV === 1)
+                {
+                    command = 0x1D;
+                    control.speed = Math.round((control.speed / 5));
+                    if( control.speed > 0x0C )
+                        control.speed = 0x0C;
+                }
                 let hapcanMsg = Buffer.from([0xAA, 0x10,0xA0, 0xF0,0xF0, 0xFF, 0xFF, node.node,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]); 
                 
                 hapcanMsg[5] = command;
@@ -137,9 +147,18 @@ module.exports = function(RED) {
 
             var hapcanMsg = Buffer.from([0xAA, 0x10,0xA0, 0xF0,0xF0, 0xFF,0xFF, node.node,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
             
-            hapcanMsg[5] = control.command;
-            hapcanMsg[6] = control.state;
-            hapcanMsg[9] = control.delay;
+            if(node.UNIV === 1)
+            {
+                hapcanMsg[10] = control.command;
+                hapcanMsg[11] = control.state;
+                hapcanMsg[12] = control.delay;
+            }
+            else
+            {
+                hapcanMsg[5] = control.command;
+                hapcanMsg[6] = control.state;
+                hapcanMsg[9] = control.delay;
+            }
 
             msg.payload = hapcanMsg;
             msg.topic = 'control';
