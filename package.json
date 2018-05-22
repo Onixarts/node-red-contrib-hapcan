@@ -11,15 +11,34 @@
     "iot",
     "can-bus"
   ],
+  "homepage": "https://github.com/Onixarts/node-red-contrib-hapcan",
+  "bugs": {
+    "url": "https://github.com/Onixarts/node-red-contrib-hapcan/issues",
+    "email": "software@onixarts.pl"
+  },
   "main": "settings.js",
   "directories": {
     "lib": "lib"
   },
   "devDependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "author": {
+    "name": "Bartosz Rosa",
+    "email": "software@onixarts.pl",
+    "url": "https://onixarts.pl"
   },
-  "author": "Bartosz Rosa",
+  "contributors": [
+    {
+      "name": "dryma",
+      "url": "https://github.com/dryma"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Onixarts/node-red-contrib-hapcan"
+  },
+  "engines": {
+    "node": ">=8.9.4"
+  },
   "license": "ISC",
   "node-red" : {
     "nodes": {
