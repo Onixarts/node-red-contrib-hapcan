@@ -14,7 +14,9 @@ Nodes are using the [Hapcan ethernet module](http://hapcan.com/devices/universal
 - Hapcan ethernet module
 
 # Instalation
+## Using NODE-RED installer
 
+Just open **Manage palette** from node-red dashboard menu, switch to **Install** tab and search for *hapcan* word. Only stable releases.
 ## Using npm
 
 Only stable releases
