@@ -1,11 +1,16 @@
 {
   "name": "node-red-contrib-hapcan",
-  "description": "A Node-RED Project",
-  "version": "0.0.1",
+  "description": "Set of nodes for HAPCAN (home automation project based on CAN bus).",
+  "version": "0.1.0",
   "dependencies": {
-    "node-red-dashboard": "~2.7.0",
-    "node-red-node-weather-underground": "~0.1.12"
   },
+  "keywords": [
+    "node-red",
+    "hapcan",
+    "home-automation",
+    "iot",
+    "can-bus"
+  ],
   "main": "settings.js",
   "directories": {
     "lib": "lib"
