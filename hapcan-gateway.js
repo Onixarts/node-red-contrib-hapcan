@@ -186,11 +186,22 @@ module.exports = function (RED) {
                 else if (Buffer.isBuffer(msg.payload)) {
 
                     var sum = 0;
-                    for (var i = 1; i < 13; i++)
+                    if( msg.payload.length === 15)
                     {
-                        sum += msg.payload[i];
+                        for (var i = 1; i < 13; i++)
+                        {
+                            sum += msg.payload[i];
+                        }
+                        msg.payload[13] = sum;
                     }
-                    msg.payload[13] = sum;
+                    else if(msg.payload.length === 13)
+                    {
+                        for (var i = 1; i < 11; i++)
+                        {
+                            sum += msg.payload[i];
+                        }
+                        msg.payload[11] = sum;  
+                    }
                     
                     this.log('sending:  >> '+ node.messageToString(msg.payload));
 

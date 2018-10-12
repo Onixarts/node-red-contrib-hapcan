@@ -6,8 +6,6 @@ The node.js package that brings [HAPCAN](http://hapcan.com/) Home Automation Pro
 
 Nodes are using the [Hapcan ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm) to communicate between Hapcan bus and node-red.
 
-**Note: Currently work in progress, but it works well.**
-
 ## Hardware requirements
 
 - Hapcan based infrastructure
@@ -39,6 +37,7 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 - **Relay input** receives messages from [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
 - **Relay output** allows controlling the [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
 - **RTC input** receives time messages from [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
+- **RTC output** allows set time and date for [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
 - **Temp input** receives temperature messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-4-x-x.htm)
 - **RGB input** receives messages from [RGB LED controller module](http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
 - **RGB output** allows controlling [RGB LED controller module](http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
