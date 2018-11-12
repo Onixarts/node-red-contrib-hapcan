@@ -194,7 +194,7 @@
             name: {value:""},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
-            channelFilter: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 256);}},
+            channelFilter: {value: 1, required: true, validate: function(val){return (Number(val) > 0 && Number(val) <= 256);}},
             userFieldStateON: {value: ""},
             userFieldStateOFF: {value: ""}
         },

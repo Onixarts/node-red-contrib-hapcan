@@ -34,17 +34,18 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 
 ## Currently available nodes:
 
-- **Relay input** receives messages from [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
-- **Relay output** allows controlling the [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
-- **RTC input** receives time messages from [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
-- **RTC output** allows set time and date for [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
-- **Temp input** receives temperature messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-4-x-x.htm)
-- **RGB input** receives messages from [RGB LED controller module](http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
-- **RGB output** allows controlling [RGB LED controller module](http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
 - **Blind input** receives messages from [blind controller](http://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
 - **Blind output** allows controlling the [blind controller](http://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
 - **Button input** receives messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-1-x-x.htm)
+- **IR input** receive infrared sensor messages from [Infrared receiver and transmitter](http://hapcan.com/devices/universal/univ_3/univ_3-5-0-x/index.htm)
+- **Relay input** receives messages from [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
+- **Relay output** allows controlling the [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
+- **RGB input** receives messages from [RGB LED controller module](http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
+- **RGB output** allows controlling [RGB LED controller module](http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
+- **RTC input** receives time messages from [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
+- **RTC output** allows set time and date for [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
 - **State output** helps request Hapcan modules status informations
+- **Temp input** receives temperature messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-4-x-x.htm)
 
 # Usage
 
