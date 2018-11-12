@@ -15,13 +15,14 @@ module.exports = function (RED) {
 
     // var connectionPool = {};
 
-    function HapcanGatewayNode(n) {
-        RED.nodes.createNode(this, n);
-        this.host = n.host;
-        this.port = n.port;
-        this.group = n.group;
-        this.node = n.node;
+    function HapcanGatewayNode(config) {
+        RED.nodes.createNode(this, config);
+        this.host = config.host;
+        this.port = config.port;
+        this.group = config.group;
+        this.node = config.node;
         this.client = null;
+        this.debugmode = config.debugmode || false;
         this.incommingMessage = Buffer.allocUnsafe(15);
         this.incommingMessage.fill(0xFF);
         this.incommingMessageIndex = 0;
@@ -170,7 +171,8 @@ module.exports = function (RED) {
 
         this.messageReceived = function(frame)
         {
-            node.log('received: << ' + node.messageToString(frame));
+            if(node.debugmode)
+                node.log('received: << ' + node.messageToString(frame));
 
             var hapcanMsg = new HapcanMessage(frame);
 
@@ -203,7 +205,8 @@ module.exports = function (RED) {
                         msg.payload[11] = sum;  
                     }
                     
-                    this.log('sending:  >> '+ node.messageToString(msg.payload));
+                    if( node.debugmode )
+                        this.log('sending:  >> '+ node.messageToString(msg.payload));
 
                     node.client.write(msg.payload);
                 }

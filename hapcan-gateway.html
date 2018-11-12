@@ -8,6 +8,7 @@
             port: {value: 1000, required: true, validate: function(val){return (val>0 && val < 65535);}},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            debugmode: {value: false}
             // channel: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 6);}}
         },
         // inputs:1,
@@ -17,6 +18,13 @@
         label: function() {
             return this.host+':'+this.port + ' ('+this.node+','+this.group+')';
         },
+        oneditprepare: function(){
+            if(this.debugmode)
+                $("#node-input-debugmode").prop('checked', true);
+        },
+        oneditsave: function(){
+            this.debugmode = $("#node-input-debugmode").is(":checked") ? true : false;
+        }
         });
 </script>
 
@@ -36,6 +44,12 @@
     <div class="form-row">
         <label for="node-config-input-group"><i class="fa fa-th"></i> Group</label>
         <input type="number" id="node-config-input-group" placeholder="Group number (1-255)">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-debugmode"><i class="fa fa-bug"></i> Debug mode</label>
+        <input style="width: 5%;" id="node-input-debugmode" type="checkbox" ><br>
+        <span style="opacity: 0.7; font-size: 12px;">Enable Hapcan message loging into console.</span>
     </div>
 </script>
 
