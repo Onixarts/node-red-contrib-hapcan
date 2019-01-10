@@ -3,24 +3,20 @@
         category: 'config',
         // color: '#E9967A',
         defaults: {
-            // name: {value:""},
             host: {value:"192.168.0.100", required: true, },
             port: {value: 1000, required: true, validate: function(val){return (val>0 && val < 65535);}},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
-            debugmode: {value: false}
-            // channel: {value: 1, required: true,validate: function(val){return (val > 0 && val <= 6);}}
+            debugmode: {value: false},
+            reconnectPeriod: {value: 1000, validate: function(val){ return !val || val > 0; } }
         },
-        // inputs:1,
-        // outputs:0,
-        //icon: "relay-output.png",
-        //align: 'right',
         label: function() {
             return this.host+':'+this.port + ' ('+this.node+','+this.group+')';
         },
         oneditprepare: function(){
             if(this.debugmode)
                 $("#node-input-debugmode").prop('checked', true);
+            $('#node-config-input-reconnectPeriod').val(this.reconnectPeriod || 1000);
         },
         oneditsave: function(){
             this.debugmode = $("#node-input-debugmode").is(":checked") ? true : false;
@@ -45,6 +41,11 @@
         <label for="node-config-input-group"><i class="fa fa-th"></i> Group</label>
         <input type="number" id="node-config-input-group" placeholder="Group number (1-255)">
     </div>
+    <div class="form-row">
+        <label for="node-config-input-reconnectPeriod"><i class="fa fa-refresh"></i> Reconnect period [ms]</label>
+        <input type="number" id="node-config-input-reconnectPeriod" placeholder="1000">
+    </div>
+
     
     <div class="form-row">
         <label for="node-input-debugmode"><i class="fa fa-bug"></i> Debug mode</label>

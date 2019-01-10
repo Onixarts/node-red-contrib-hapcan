@@ -13,7 +13,6 @@ module.exports = function (RED) {
             closing: {value: 5, name: "closing"}
     });
 
-    // var connectionPool = {};
 
     function HapcanGatewayNode(config) {
         RED.nodes.createNode(this, config);
@@ -21,6 +20,7 @@ module.exports = function (RED) {
         this.port = config.port;
         this.group = config.group;
         this.node = config.node;
+        this.reconnectPeriod = Number(config.reconnectPeriod || 1000);
         this.client = null;
         this.debugmode = config.debugmode || false;
         this.incommingMessage = Buffer.allocUnsafe(15);
@@ -119,18 +119,21 @@ module.exports = function (RED) {
             {
                 node.setConnectionStatus(ConnectionStatus.connecting);
                 
-                node.client = net.createConnection(node.port, node.host, function(){
-                    node.setConnectionStatus(ConnectionStatus.connected);
+                node.client = net.createConnection(node.port, node.host);
 
-                });
                 node.client.on('error', function(err){
                     node.log('error during connection occured: ' + err);
                 });
 
                 node.client.on('close', function(){
                     node.setConnectionStatus(ConnectionStatus.notConnected);
+                    node.reconnect();
                 });
 
+                node.client.on('connect', function(socket){
+                    node.setConnectionStatus(ConnectionStatus.connected);
+                });
+                
                 node.client.on('data', function(data){
                     
                     for(var i = 0; i < data.length; i++)
@@ -152,6 +155,13 @@ module.exports = function (RED) {
 
         };
 
+        this.reconnect = function() {
+            setTimeout(()=>{
+                this.client.removeAllListeners();
+                this.connect();
+            }, node.reconnectPeriod);
+        }
+
         this.messageToString = function(hapcanMessage)
         {
             var messageString = '';
@@ -160,13 +170,14 @@ module.exports = function (RED) {
             return messageString;
         }
 
-        function HapcanMessage(frame)
-        {
-            this.frame = frame;
-            this.frameType =  Number((((frame[1]) * 256 + (frame[2] & 0xF0)) / 16).toString(16));
-            this.isAnswer = (frame[2] & 0x01) === 0 ? false : true;
-            this.node = frame[3];
-            this.group = frame[4];
+        class HapcanMessage {
+            constructor(frame) {
+                this.frame = frame;
+                this.frameType = Number((((frame[1]) * 256 + (frame[2] & 0xF0)) / 16).toString(16));
+                this.isAnswer = (frame[2] & 0x01) === 0 ? false : true;
+                this.node = frame[3];
+                this.group = frame[4];
+            }
         }
 
         this.messageReceived = function(frame)
