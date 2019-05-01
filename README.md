@@ -46,6 +46,7 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 - **RTC output** allows set time and date for [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
 - **State output** helps request Hapcan modules status informations
 - **Temp input** receives temperature messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-4-x-x.htm)
+- **Thermostat input** receives thermostat messages from [button modules](https://hapcan.com/devices/universal/univ_3/univ_3-1-3-x/index.htm)
 
 # Usage
 
