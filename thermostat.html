@@ -1,47 +1,47 @@
 <script type="text/javascript">
-    RED.nodes.registerType('temp-input',{
+    RED.nodes.registerType('thermostat-input', {
         category: 'hapcan',
         color: '#D3D3D3',
         defaults: {
-            gateway: {type:"hapcan-gateway", required: true},
-            name: {value:""},
-            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
-            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            gateway: { type: "hapcan-gateway", required: true },
+            name: { value: "" },
+            group: { value: 1, required: true, validate: function (val) { return (val > 0 && val < 256); } },
+            node: { value: 1, required: true, validate: function (val) { return (val > 0 && val < 256); } },
         },
-        inputs:0,
-        outputs:1,
+        inputs: 0,
+        outputs: 1,
         icon: "relay-output.png",
         align: 'left',
-        label: function() {
-            return (this.name||"temp input") + ' ('+this.node+','+this.group+')';
+        label: function () {
+            return (this.name || "th/stat input") + ' (' + this.node + ',' + this.group + ')';
         },
-        labelStyle: function() { return this.name?"node_label_italic":""; } ,
-        oneditprepare: function() {
+        labelStyle: function () { return this.name ? "node_label_italic" : ""; },
+        oneditprepare: function () {
 
             var nodeOptions = '';
             var groupOptions = '';
-            for(var i = 1; i < 256; i++)
-            {
+            for (var i = 1; i < 256; i++) {
                 var selectedNode = '';
-                if((Number(this.node) === i))
+                if ((Number(this.node) === i)) {
                     selectedNode = 'selected="selected"';
-                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+                }
+                nodeOptions += '<option ' + selectedNode + ' value="' + i + '">' + i + '</option>';
 
                 var selectedGroup = '';
-                if((Number(this.group) === i))
+                if ((Number(this.group) === i))
                     selectedGroup = 'selected="selected"';
-                
-                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+
+                groupOptions += '<option ' + selectedGroup + ' value="' + i + '">' + i + '</option>';
             }
-            
+
             $("#node-input-node").append(nodeOptions);
             $("#node-input-group").append(groupOptions);
         }
-        });
+    });
 
 </script>
 
-<script type="text/x-red" data-template-name="temp-input">
+<script type="text/x-red" data-template-name="thermostat-input">
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Device name">
@@ -60,14 +60,14 @@
     </div>
 </script>
 
-<script type="text/x-red" data-help-name="temp-input">
-    <p>Receives Hapcan temperature frame from UNIV-3.1.2/3 and UNIV-1.0.4 modules.</p>
-    <p>The node emit temperature messages sent by button modules. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
+<script type="text/x-red" data-help-name="thermostat-input">
+    <p>Receives Hapcan thermostat frame from UNIV-3.1.2/3 modules.</p>
+    <p>The node emit thermostat messages sent by button modules. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
     
     <h3>Output</h3>
     <dl class="message-properties">
         <dt>payload <span class="property-type">object</span></dt>
-        <dd>Hapcan message object with temperature data.</dd>
+        <dd>Hapcan message object with thermostat data.</dd>
     </dl>
     
     <h3>Details</h3>
@@ -90,22 +90,18 @@
         <dd>Sender module group number.</dd>
 
         <dt>type <span class="property-type">number</span></dt>
-        <dd>Data type in message (0x11 = temperature)</dd>
+        <dd>Data type in message (0x12 = thermostat)</dd>
 
-        <dt>temp <span class="property-type">number</span></dt>
-        <dd>Temperature in Celsius degrees, rounded to 1 decimal place.</dd>
+        <dt>position <span class="property-type">enum</span></dt>
+        <dd>Current thermostat status: <i>ABOVE</i>, <i>BELOW</i>, <i>POWERUP</i>.</dd>
 
-        <dt>setpoint <span class="property-type">number</span></dt>
-        <dd>Thermostat setpoint in Celsius degrees.</dd>
-
-        <dt>hysteresis <span class="property-type">number</span></dt>
-        <dd>Thermostat hysteresis in Celsius degrees.</dd>
+        <dt>enabled <span class="property-type">bool</span></dt>
+        <dd>Thermostat's state representation as bool value, <i>true</i> or <i>false</i>.</dd>
     </dl>
 
     <h3>References</h3>
     <ul>
         <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-1-x-x.htm">Hapcan buttons UNIV-3-1-x</a> - module firmware notes.</li>
-        <li><a href="http://hapcan.com/devices/universal/univ_v1-0/univ_v1-0-4-0/index.htm">Hapcan temperature sensor UNIV-1.0.4</a> - module firmware notes.</li>
     </ul>
 
 </script>

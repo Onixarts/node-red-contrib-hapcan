@@ -41,6 +41,8 @@
                 return;
 
             hapcanMessage.temp = Number(Number(((hapcanMessage.frame[8] * 256) + hapcanMessage.frame[9]) * 0.0625).toFixed(1));
+            hapcanMessage.setpoint = Number(Number(((hapcanMessage.frame[10] * 256) + hapcanMessage.frame[11]) * 0.0625).toFixed(2));
+            hapcanMessage.hysteresis = Number(Number(hapcanMessage.frame[12] * 0.0625).toFixed(4));
 
             node.send({topic: 'Temperature sensor message', payload: hapcanMessage});
         });
