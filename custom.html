@@ -1,0 +1,316 @@
+<script type="text/javascript">
+    RED.nodes.registerType('custom-output',{
+        category: 'hapcan',
+        color: '#C1C1C1',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+        },
+        inputs:1,
+        outputs:0,
+        icon: "relay-output.png",
+        align: 'right',
+        label: function() {
+            
+            return (this.name||"custom output") + ' ('+this.node+','+this.group+')';
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        inputLabels: "custom control",
+        oneditprepare: function() {
+            var nodeOptions = '';
+            var groupOptions = '';
+            for(var i = 1; i < 256; i++)
+            {
+                var selectedNode = '';
+                if((Number(this.node) === i))
+                    selectedNode = 'selected="selected"';
+                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+
+                var selectedGroup = '';
+                if((Number(this.group) === i))
+                    selectedGroup = 'selected="selected"';
+                
+                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+            }
+            
+            $("#node-input-node").append(nodeOptions);
+            $("#node-input-group").append(groupOptions);
+        },
+        oneditsave: function(){
+        }
+        });
+</script>
+
+<script type="text/x-red" data-template-name="custom-output">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
+        <select id="node-input-group"></select>
+    </div>
+    <!-- <div class="form-row">
+        <label for="node-input-defaultAction"><i class="fa fa-play"></i> Default action</label>
+        <select id="node-input-defaultAction">
+                <option value="-1">Do nothing</option>
+                <option value="0">Turn OFF</option>
+                <option value="1">Turn ON</option>
+                <option selected="selected" value="2">Toggle</option>
+        </select>
+    </div>     -->
+
+</script>
+
+<script type="text/x-red" data-help-name="custom-output">
+    <p>Allows controlling any of the Hapcan and Hapcan's compatible modules.</p>
+    <p>The node allows you to send custom message to any device. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">string | number | bool | any | object</span></dt>
+        <dd>Any input message will perform default action. If topic is set to <i>control</i> the payload will control the Relay module.</dd>
+
+        <dt class="optional">topic <span class="property-type">string</span></dt>
+        <dd>Topic is optional. When a <i>control</i> value is provided it will overrides default action settings and allows controlling of the node directly.</dd>
+    </dl>
+    
+    <h3>Details</h3>
+    <p>The default node behaviour on any input message is to execute the action specified in properties. 
+        When <code>msg.topic</code> is set to <i>control</i> then input value will control node in several ways. In control mode the <code>msg.payload</code> 
+        can be one of the following types:
+    </p>
+    <dl class="message-properties">
+        <dt>string</dt> 
+        <dd>Value of <i>on</i>, <i>off</i> or <i>toggle</i> will control the default channel. Other strings are ignored. Case insensitive.</dd>
+
+        <dt>number</dt> 
+        <dd>Hapcan's Relay module instruction. 0(off), 1(on) or 2(toggle) will control the default channel. Other values are ignored.</dd>            
+
+        <dt>boolean</dt> 
+        <dd>Output will turn ON when value is true, otherwise it will turn OFF. This type is easy to use with UI switch control.</dd>
+
+        <dt>object</dt> 
+        <dd>Gives an ability to override node default parameters. See details below.</dd>
+        
+    </dl>
+    <h3>Full control object definition</h3>
+    <p>
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control Relay module. Below are the possible properties list that can be specified. 
+        If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
+    </p>
+    <dl class="message-properties">
+        <dt>channels <span class="property-type">number | array</span></dt> 
+        <dd>Single number value or number array of selected channels to perform the action.</dd>
+
+        <dt>action <span class="property-type">string | number | bool</span></dt></dt> 
+        <dd>String or number action representation. See <code>msg.payload</code> description above for details.</dd>
+
+        <!-- <dt>delay <span class="property-type">string | number</span></dt></dt> 
+        <dd>Delay value as a string or Hapcan delay value.</dd> -->
+    </dl>
+    
+    <p>Default module version is UNIV-3. You can select UNIV-1 support in settings.</p>
+    
+    <h3>References</h3>
+    <ul>
+        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm">Hapcan relays UNIV-3</a> - module firmware notes.</li>
+        <li><a href="http://hapcan.com/devices/universal/univ_v1-0/univ_v1-0-2-0/index.htm">Hapcan relays UNIV-1</a> - firmware notes.</li>
+    </ul>
+
+</script>
+
+
+
+<script type="text/javascript">
+    RED.nodes.registerType('custom-input',{
+        category: 'hapcan',
+        color: '#D3D3D3',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            frameTypeFilter: {value: '', validate: function(val){
+                if(val === '') return true; 
+                var type = Number(val); 
+                if(!Number.isInteger(type)) 
+                    return false; 
+                if(type<0 || type > 999) 
+                    return false; 
+                return true; 
+            }},
+            d0name: {value:''},
+            d1name: {value:''},
+            d2name: {value:''},
+            d3name: {value:''},
+            d4name: {value:''},
+            d5name: {value:''},
+            d6name: {value:''},
+            d7name: {value:''},
+        },
+        inputs:0,
+        outputs:1,
+        icon: "relay-output.png",
+        align: 'left',
+        label: function() {
+            let filter = ''
+            if( this.frameTypeFilter > 0 )
+                filter = ` [0x${this.frameTypeFilter}]`;
+
+            return (this.name||"custom input") + ' ('+this.node+','+this.group+')' + filter;
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        oneditprepare: function() {
+
+            var nodeOptions = '';
+            var groupOptions = '';
+            for(var i = 1; i < 256; i++)
+            {
+                var selectedNode = '';
+                if((Number(this.node) === i))
+                    selectedNode = 'selected="selected"';
+                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+
+                var selectedGroup = '';
+                if((Number(this.group) === i))
+                    selectedGroup = 'selected="selected"';
+                
+                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+            }
+            
+            $("#node-input-node").append(nodeOptions);
+            $("#node-input-group").append(groupOptions);
+        },
+        oneditsave: function(){
+        }
+        });
+
+</script>
+
+<script type="text/x-red" data-template-name="custom-input">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
+        <select id="node-input-group"></select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-frameTypeFilter"><i class="fa fa-sign-out"></i> Frame filter</label>
+        <input type="text" id="node-input-frameTypeFilter" placeholder="Leave empty to receive all types">
+    </div>
+    <hr>
+
+    <div class="form-row">
+        <label for="node-input-d0name"><i class="fa fa-cube"></i> D0 name</label>
+        <input type="text" id="node-input-d0name" placeholder="Data byte 0 property name">
+    </div>
+    <div class="form-row">
+            <label for="node-input-d1name"><i class="fa fa-cube"></i> D1 name</label>
+            <input type="text" id="node-input-d1name" placeholder="Data byte 1 property name">
+    </div>
+    <div class="form-row">
+            <label for="node-input-d2name"><i class="fa fa-cube"></i> D2 name</label>
+            <input type="text" id="node-input-d2name" placeholder="Data byte 2 property name">
+    </div>
+    <div class="form-row">
+            <label for="node-input-d3name"><i class="fa fa-cube"></i> D3 name</label>
+            <input type="text" id="node-input-d3name" placeholder="Data byte 3 property name">
+    </div>
+    <div class="form-row">
+            <label for="node-input-d4name"><i class="fa fa-cube"></i> D4 name</label>
+            <input type="text" id="node-input-d4name" placeholder="Data byte 4 property name">
+    </div>
+    <div class="form-row">
+            <label for="node-input-d5name"><i class="fa fa-cube"></i> D5 name</label>
+            <input type="text" id="node-input-d5name" placeholder="Data byte 5 property name">
+    </div>
+    <div class="form-row">
+            <label for="node-input-d6name"><i class="fa fa-cube"></i> D6 name</label>
+            <input type="text" id="node-input-d6name" placeholder="Data byte 6 property name">
+    </div>
+    <div class="form-row">
+            <label for="node-input-d7name"><i class="fa fa-cube"></i> D7 name</label>
+            <input type="text" id="node-input-d7name" placeholder="Data byte 7 property name">
+    </div>
+    
+    
+    <!-- <div class="form-row">
+        <label style="width: auto;"><i class="fa fa-envelope-o"></i> Set <b>userField</b> value for states:</label>
+    </div>
+    <div class="form-row">
+        <label style="padding-left: 25px; margin-right: -25px;" for="node-input-userFieldStateON"><i class="fa fa-circle"></i> ON</label>
+        <input type="text" id="node-input-userFieldStateON" >
+    </div>
+    <div class="form-row">
+        <label style="padding-left: 25px; margin-right: -25px;" for="node-input-userFieldStateOFF"><i class="fa fa-circle"></i> OFF</label>
+        <input type="text" id="node-input-userFieldStateOFF" >
+    </div> -->
+  
+</script>
+
+<script type="text/x-red" data-help-name="custom-input">
+    <p>Receives any Hapcan messages.</p>
+    <p>The node emit all messages received from device. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
+    
+    <h3>Output</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>Hapcan message object with relay module's state data.</dd>
+    </dl>
+    
+    <h3>Details</h3>
+    <p>The <code>msg.payload</code> contains:
+    </p>
+    <dl class="message-properties">
+        <dt>frame <span class="property-type">Buffer[15]</span></dt>
+        <dd>15 bytes buffer containing raw Hapcan's CAN frame.</dd>
+
+        <dt>frameType <span class="property-type">number</span></dt>
+        <dd>Hapcan frame type number</dd>
+
+        <dt>isAnswer <span class="property-type">bool</span></dt>
+        <dd><i>True</i> if message is an answer for request.</dd>
+        
+        <dt>node <span class="property-type">number</span></dt>
+        <dd>Sender module node number.</dd>
+
+        <dt>group <span class="property-type">number</span></dt>
+        <dd>Sender module group number.</dd>
+        
+        <dt>frame filter <span class="property-type">empty | number</span></dt>
+        <dd>If filter is specified (3-digit frame type) the node will emit message only if received hapcan message match filter value. 
+            Leave empty to emit all the received messages.
+        </dd>
+
+        <dt>D[0-7] name <span class="property-type">empty | string</span></dt>
+        <dd>You can specify a message property name for each 8 data bytes of the received hapcan message. If You provide name for data byte the emitted message
+            will contain this property with value of the corresponding data byte.
+        </dd>        
+
+    </dl>
+    <p>
+        This node receives all messages of the selected module in group.
+    </p>
+</script>
