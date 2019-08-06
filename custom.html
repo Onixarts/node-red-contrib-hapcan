@@ -5,8 +5,25 @@
         defaults: {
             gateway: {type:"hapcan-gateway", required: true},
             name: {value:""},
-            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
-            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            group: {value: 240, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 240, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            frameType: {value: 266, required: true, validate: function(val) {if(!Number.isInteger(val)) return false; if(Number(val)<0 || Number(val)> 4095) return false; return true;} },
+            d0name: {value:''},
+            d1name: {value:''},
+            d2name: {value:''},
+            d3name: {value:''},
+            d4name: {value:''},
+            d5name: {value:''},
+            d6name: {value:''},
+            d7name: {value:''},
+            d0value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d1value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d2value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d3value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d4value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d5value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d6value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d7value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
         },
         inputs:1,
         outputs:0,
@@ -35,15 +52,177 @@
                 groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
             }
             
-            $("#node-input-node").append(nodeOptions);
-            $("#node-input-group").append(groupOptions);
+            $("#node-input-node").append(nodeOptions).on("change", function(){computePreview()});
+            $("#node-input-group").append(groupOptions).on("change", function(){computePreview()});
+
+            $('#frame-type').val( ('000'+ Number(this.frameType).toString(16)).substr(-3));
+            updateFrameTypeName()
+
+            function computePreview(){
+                $('table.frame-preview td').each(function(i){
+                    
+                    switch(i)
+                    {
+                        case 1: $(this).text( $('#frame-type').val().substr(0,2) ); break;
+                        case 2: $(this).text( $('#frame-type').val().substr(-1)+'0' ); break;
+                        case 3: $(this).text(('00'+Number($('#node-input-node').val()).toString(16)).substr(-2));break
+                        case 4: $(this).text(('00'+Number($('#node-input-group').val()).toString(16)).substr(-2));break
+                        case 5: $(this).text($('#d0hex').val()); break;
+                        case 6: $(this).text($('#d1hex').val()); break;
+                        case 7: $(this).text($('#d2hex').val()); break;
+                        case 8: $(this).text($('#d3hex').val()); break;
+                        case 9: $(this).text($('#d4hex').val()); break;
+                        case 10: $(this).text($('#d5hex').val()); break;
+                        case 11: $(this).text($('#d6hex').val()); break;
+                        case 12: $(this).text($('#d7hex').val()); break;
+                    }
+                })
+
+                var sum = 0;
+                for (var i = 2; i < 14; i++)
+                {
+                    sum += parseInt($('table.frame-preview td:nth-child('+i+')').text(), 16)
+                }
+
+                $('table.frame-preview td:nth-child(14)').text(('00'+sum.toString(16)).substr(-2))
+            }
+
+            function updateFrameTypeName(){
+                var val = $('#frame-type').val()
+
+                var frameName = 'custom frame'
+                switch(val.toUpperCase()){
+                    case '010': frameName = 'all exit from programming mode'; break
+                    case '020': frameName = 'node exit from programming mode'; break
+                    case '030': frameName = 'programming address frame'; break
+                    case '040': frameName = 'programming data frame'; break
+                    case '0F0': frameName = 'error frame'; break
+                    case '101': frameName = 'reset group request'; break
+                    case '102': frameName = 'reset node request'; break
+                    case '103': frameName = 'group serial numbers request'; break
+                    case '104': frameName = 'node serial number request'; break
+                    case '105': frameName = 'group firmware request'; break
+                    case '106': frameName = 'node firmware request'; break
+                    case '107': frameName = 'set node default ID'; break
+                    case '108': frameName = 'group status request'; break
+                    case '109': frameName = 'node status request'; break
+                    case '10A': frameName = 'execute node instruction'; break
+                    case '10B': frameName = 'group power supply voltage request'; break
+                    case '10C': frameName = 'node power supply voltage request'; break
+                    case '10D': frameName = 'group description request'; break
+                    case '10E': frameName = 'node description request'; break
+                    case '10F': frameName = 'group processor ID request'; break
+                    case '111': frameName = 'node processor ID request'; break
+                    case '112': frameName = 'group uptime request'; break
+                    case '113': frameName = 'node uptime request'; break
+                    case '114': frameName = 'group health check request'; break
+                    case '115': frameName = 'node health check request'; break
+
+                    case '300': frameName = 'real time clock status'; break
+                    case '301': frameName = 'button status'; break
+                    case '302': frameName = 'relay status'; break
+                    case '303': frameName = 'ir receiver status'; break
+                    case '304': frameName = 'temperature status'; break
+                    case '306': frameName = 'dimmer status'; break
+                    case '307': frameName = 'blind controller status'; break
+                    case '308': frameName = 'RGB LED controller status'; break
+                    case '309': frameName = 'open collector output status'; break
+                }
+                $('#frame-type-name').text(frameName)
+            }
+            
+            $('.property-value-hex').each(function(){
+                $(this).keypress(function(event) {
+                    var regex = new RegExp("^[a-fA-F0-9]+$");
+                    var key = String.fromCharCode(!event.charCode ? event.which : event.charCode);
+                    if (!regex.test(key)) {
+                        event.preventDefault();
+                        return false;
+                    }
+                })
+                $(this).on("change paste keyup", function(){
+                    $(this).next().val(parseInt($(this).val(), 16))
+
+                    updateFrameTypeName()
+                    computePreview();
+                })
+
+                $(this).on("change", function(){
+                    var max = Number($(this).attr('maxlength'))
+                    var val = ('000' + $(this).val()).substr(-1*max) 
+                    $(this).val(val)
+
+                    updateFrameTypeName()
+                    computePreview();
+                })                
+            })
+
+            
+            $('.databytes .property-value-dec').each(function(){
+                $(this).on("change paste keyup", function(){
+                    if(Number($(this).val()) < 0 )
+                        $(this).val('0')
+                    if(Number($(this).val()) > 255 )
+                        $(this).val('255')
+                    $(this).prev().val(('00'+Number(($(this).val())).toString(16)).substr(-2))
+
+                    computePreview();
+                })                
+                $(this).keypress(function(event) {
+                    var regex = new RegExp("^[0-9]+$");
+                    var key = String.fromCharCode(!event.charCode ? event.which : event.charCode);
+                    if (!regex.test(key)) {
+                        event.preventDefault();
+                        return false;
+                    }
+                })
+            })
         },
         oneditsave: function(){
+            this.frameType = parseInt($('#frame-type').val(), 16);
         }
         });
 </script>
 
 <script type="text/x-red" data-template-name="custom-output">
+    <style>
+        .databytes .property-name {
+            width: 23%;
+        }
+        .databytes .property-value-hex {
+            width: 40px;
+            text-transform:uppercase;
+        }
+
+        #frame-type {
+            width: 50px;
+            text-transform:uppercase;
+        }
+     
+        .databytes .property-value-dec {
+            width: 50px;
+        }
+        table.frame-preview {
+            width: 100%;
+            background-color: #bbb;
+            border-spacing: 2px;
+            border-collapse: separate;
+            text-align: center;
+        }
+        .frame-preview td {
+            padding: 4px 2px;
+            background-color: #eee;
+            width: 6%;
+            text-transform:uppercase;
+        }
+        .frame-preview td.const {
+            background-color: #ddd;
+        }
+        .frame-preview td.data {
+            background-color: #fafafa;
+        }
+
+    </style>
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Device name">
@@ -53,22 +232,95 @@
         <input type="text" id="node-input-gateway" placeholder="Gateway">
     </div>
     <div class="form-row">
-        <label for="node-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <label for="node-input-node"><i class="fa fa-microchip"></i> Comp node</label>
         <select id="node-input-node"></select>
     </div>
     <div class="form-row">
-        <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
+        <label for="node-input-group"><i class="fa fa-th"></i> Comp group</label>
         <select id="node-input-group"></select>
     </div>
-    <!-- <div class="form-row">
-        <label for="node-input-defaultAction"><i class="fa fa-play"></i> Default action</label>
-        <select id="node-input-defaultAction">
-                <option value="-1">Do nothing</option>
-                <option value="0">Turn OFF</option>
-                <option value="1">Turn ON</option>
-                <option selected="selected" value="2">Toggle</option>
-        </select>
-    </div>     -->
+
+    <hr>
+
+    <div class="form-row">
+        <label for="frameType"><i class="fa fa-sign-out"></i> Frame type</label>
+        <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX">
+        <span id="frame-type-name">custom frame</span>
+    </div>
+
+    <div class="databytes">
+        <div class="form-row">
+            <label for="node-input-d0name"><i class="fa fa-cube"></i> D0</label>
+            <input class="property-name" type="text" id="node-input-d0name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d0hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d0value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d1name"><i class="fa fa-cube"></i> D1</label>
+            <input  class="property-name" type="text" id="node-input-d1name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d1hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d1value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d2name"><i class="fa fa-cube"></i> D2</label>
+            <input class="property-name" type="text" id="node-input-d2name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d2hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d2value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d3name"><i class="fa fa-cube"></i> D3</label>
+            <input class="property-name" type="text" id="node-input-d3name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d3hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d3value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d4name"><i class="fa fa-cube"></i> D4</label>
+            <input class="property-name" type="text" id="node-input-d4name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d4hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d4value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d5name"><i class="fa fa-cube"></i> D5</label>
+            <input class="property-name" type="text" id="node-input-d5name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d5hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d5value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d6name"><i class="fa fa-cube"></i> D6</label>
+            <input class="property-name" type="text" id="node-input-d6name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d6hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d6value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d7name"><i class="fa fa-cube"></i> D7</label>
+            <input class="property-name" type="text" id="node-input-d7name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d7hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d7value" placeholder="dec">
+        </div>
+    </div>
+
+    <div class="form-row">
+        <table class="frame-preview">
+            <tr>
+                <td class="const">AA</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="const"></td>
+                <td class="const">A5</td>
+            </tr>
+        </table>
+        
+    </div>
 
 </script>
 

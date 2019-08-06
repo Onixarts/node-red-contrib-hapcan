@@ -4,14 +4,26 @@ module.exports = function(RED) {
         var node = this;
 
         node.gateway = RED.nodes.getNode(config.gateway);
-        node.group = config.group;
-        node.node = config.node;
+        node.compGroup = Number(config.group);
+        node.compNode = Number(config.node);
         node.name = config.name;
-        //node.channel = config.channel;
-        //node.defaultAction = config.defaultAction;
-        //node.UNIV = Number(config.UNIV);
-        //if( node.UNIV == undefined)
-          //  node.UNIV = 3;
+        node.frameType = Number(config.frameType)
+        node.d0name = config.d0name
+        node.d1name = config.d1name
+        node.d2name = config.d2name
+        node.d3name = config.d3name
+        node.d4name = config.d4name
+        node.d5name = config.d5name
+        node.d6name = config.d6name
+        node.d7name = config.d7name
+        node.d0value = Number(config.d0value)
+        node.d1value = Number(config.d1value)
+        node.d2value = Number(config.d2value)
+        node.d3value = Number(config.d3value)
+        node.d4value = Number(config.d4value)
+        node.d5value = Number(config.d5value)
+        node.d6value = Number(config.d6value)
+        node.d7value = Number(config.d7value)
 
         node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + ("00" + node.channel).slice (-3)+'_';
 
@@ -33,13 +45,19 @@ module.exports = function(RED) {
         });
 
         node.on('input', function(msg) {
-            
-            // var control = { 
-            //     channels: Number(node.channel),
-            //     action: Number(node.defaultAction),
-            //     delay: 0x00
-            // }
 
+            var hapcanMsg = Buffer.from([0xAA, 0xFF,0xFF, node.compNode,node.compGroup, 0xF0,0xF0,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            hapcanMsg[1] = node.frameType >>> 4
+            hapcanMsg[2] = (node.frameType & 0x0F) << 4
+            hapcanMsg[5] = node.d0value
+            hapcanMsg[6] = node.d1value
+            hapcanMsg[7] = node.d2value
+            hapcanMsg[8] = node.d3value
+            hapcanMsg[9] = node.d4value
+            hapcanMsg[10] = node.d5value
+            hapcanMsg[11] = node.d6value
+            hapcanMsg[12] = node.d7value
+            
             // if(msg.topic === "control" )
             // {
             //     if(typeof msg.payload === 'object')
@@ -86,7 +104,7 @@ module.exports = function(RED) {
             // if( control.channels === 0 )
             //     return;
 
-            //var hapcanMsg = Buffer.from([0xAA, 0x10,0xA0, 0xF0,0xF0, 0xFF,0xFF, node.node,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            
             
             // if(node.UNIV === 1)
             // {
@@ -101,41 +119,10 @@ module.exports = function(RED) {
             //     hapcanMsg[9] = control.delay;
             // }
 
-            //msg.payload = hapcanMsg;
-            //msg.topic = 'control';
-            //node.gateway.send(msg);
+            msg.payload = hapcanMsg;
+            msg.topic = 'control';
+            node.gateway.send(msg);
         });
-
-        // function parseAction(value, control)
-        // {
-        //     if(typeof value === "string" )
-        //     {
-        //         switch(value.toUpperCase())
-        //         {
-        //             case "OFF": control.action = 0x00; break;
-        //             case "ON": control.action = 0x01; break;
-        //             case "TOGGLE": control.action = 0x02; break;
-        //             default:
-        //             node.error('Invalid action string: '+ value);
-        //             return false;
-        //         }
-        //     }
-        //     else if(typeof value === 'number')
-        //     {
-        //         if(value < 0 || value > 2)
-        //         {
-        //             node.error('Invalid action number value: '+ value);
-        //             return false;
-        //         }
-        //         control.action = value;
-        //     }
-        //     else if(typeof value === 'boolean')
-        //     {
-        //         control.action = value != false ? 0x01 : 0x00;
-        //     }
-        //     return true;
-        // }
-
     }
     RED.nodes.registerType("custom-output",CustomMessageOutputNode);
 
@@ -157,10 +144,6 @@ module.exports = function(RED) {
         node.d6name = config.d6name;
         node.d7name = config.d7name;
 
-        // node.channelFilter = config.channelFilter;
-        // node.userFieldStateON = config.userFieldStateON;
-        // node.userFieldStateOFF = config.userFieldStateOFF;
-        
         node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + '_';
 
         this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
@@ -210,44 +193,8 @@ module.exports = function(RED) {
             if( node.d7name !== '')
                 hapcanMessage[node.d7name] = hapcanMessage.frame[12];                
 
-            // if((node.channelFilter & (1 << (hapcanMessage.frame[7] - 1))) === 0)
-            //     return;
-
-            // hapcanMessage.state = hapcanMessage.frame[8] === 0x00 ? 'OFF' : 'ON';
-            // hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
-            // hapcanMessage.channel = hapcanMessage.frame[7];
-            // hapcanMessage.userField = hapcanMessage.state === 'ON' ? node.userFieldStateON : node.userFieldStateOFF;
-
             node.send({topic: 'Custom message', payload: hapcanMessage});
         });
-
-
-        // function parseAction(value, control)
-        // {
-        //     if(typeof value === "string" )
-        //     {
-        //         switch(value.toUpperCase())
-        //         {
-        //             case "OFF": control.action = 0x00; break;
-        //             case "ON": control.action = 0x01; break;
-        //             case "TOGGLE": control.action = 0x02; break;
-        //             default:
-        //             node.error('Invalid action string: '+ value);
-        //             return false;
-        //         }
-        //     }
-        //     else if(typeof value === 'number')
-        //     {
-        //         if(value < 0 || value > 2)
-        //         {
-        //             node.error('Invalid action number value: '+ value);
-        //             return false;
-        //         }
-        //         control.action = value;
-        //     }
-        //     return true;
-        // }
-
     }
     RED.nodes.registerType("custom-input",CustomMessageInputNode);
 }
