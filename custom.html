@@ -92,43 +92,43 @@
 
                 var frameName = 'custom frame'
                 switch(val.toUpperCase()){
-                    case '010': frameName = 'all exit from programming mode'; break
-                    case '020': frameName = 'node exit from programming mode'; break
-                    case '030': frameName = 'programming address frame'; break
-                    case '040': frameName = 'programming data frame'; break
-                    case '0F0': frameName = 'error frame'; break
-                    case '101': frameName = 'reset group request'; break
-                    case '102': frameName = 'reset node request'; break
-                    case '103': frameName = 'group serial numbers request'; break
-                    case '104': frameName = 'node serial number request'; break
-                    case '105': frameName = 'group firmware request'; break
-                    case '106': frameName = 'node firmware request'; break
-                    case '107': frameName = 'set node default ID'; break
-                    case '108': frameName = 'group status request'; break
-                    case '109': frameName = 'node status request'; break
-                    case '10A': frameName = 'execute node instruction'; break
-                    case '10B': frameName = 'group power supply voltage request'; break
-                    case '10C': frameName = 'node power supply voltage request'; break
-                    case '10D': frameName = 'group description request'; break
-                    case '10E': frameName = 'node description request'; break
-                    case '10F': frameName = 'group processor ID request'; break
-                    case '111': frameName = 'node processor ID request'; break
-                    case '112': frameName = 'group uptime request'; break
-                    case '113': frameName = 'node uptime request'; break
-                    case '114': frameName = 'group health check request'; break
-                    case '115': frameName = 'node health check request'; break
+                    case '010': frameName = '<i class="fa fa-fire"></i> all exit from programming mode'; break
+                    case '020': frameName = '<i class="fa fa-fire"></i> node exit from programming mode'; break
+                    case '030': frameName = '<i class="fa fa-warning"></i> programming address frame'; break
+                    case '040': frameName = '<i class="fa fa-warning"></i> programming data frame'; break
+                    case '0F0': frameName = '<i class="fa fa-exclamation-circle"></i> error frame'; break
+                    case '101': frameName = '<i class="fa fa-warning"></i> reset group request'; break
+                    case '102': frameName = '<i class="fa fa-warning"></i> reset node request'; break
+                    case '103': frameName = '<i class="fa fa-question-circle"></i> group serial numbers request'; break
+                    case '104': frameName = '<i class="fa fa-question-circle"></i> node serial number request'; break
+                    case '105': frameName = '<i class="fa fa-question-circle"></i> group firmware request'; break
+                    case '106': frameName = '<i class="fa fa-question-circle"></i> node firmware request'; break
+                    case '107': frameName = '<i class="fa fa-warning"></i> set node default ID'; break
+                    case '108': frameName = '<i class="fa fa-list"></i> group status request'; break
+                    case '109': frameName = '<i class="fa fa-list"></i> node status request'; break
+                    case '10A': frameName = '<i class="fa fa-gears"></i> execute node instruction'; break
+                    case '10B': frameName = '<i class="fa fa-bolt"></i> group power supply voltage request'; break
+                    case '10C': frameName = '<i class="fa fa-bolt"></i> node power supply voltage request'; break
+                    case '10D': frameName = '<i class="fa fa-font"></i> group description request'; break
+                    case '10E': frameName = '<i class="fa fa-font"></i> node description request'; break
+                    case '10F': frameName = '<i class="fa fa-microchip"></i> group processor ID request'; break
+                    case '111': frameName = '<i class="fa fa-microchip"></i> node processor ID request'; break
+                    case '112': frameName = '<i class="fa fa-clock-o"></i> group uptime request'; break
+                    case '113': frameName = '<i class="fa fa-clock-o"></i> node uptime request'; break
+                    case '114': frameName = '<i class="fa fa-heartbeat"></i> group health check request'; break
+                    case '115': frameName = '<i class="fa fa-heartbeat"></i> node health check request'; break
 
-                    case '300': frameName = 'real time clock status'; break
-                    case '301': frameName = 'button status'; break
-                    case '302': frameName = 'relay status'; break
-                    case '303': frameName = 'ir receiver status'; break
-                    case '304': frameName = 'temperature status'; break
-                    case '306': frameName = 'dimmer status'; break
-                    case '307': frameName = 'blind controller status'; break
-                    case '308': frameName = 'RGB LED controller status'; break
-                    case '309': frameName = 'open collector output status'; break
+                    case '300': frameName = '<i class="fa fa-clock-o"></i> real time clock status'; break
+                    case '301': frameName = '<i class="fa fa-hand-o-down"></i> button status'; break
+                    case '302': frameName = '<i class="fa fa-power-off"></i> relay status'; break
+                    case '303': frameName = '<i class="fa fa-feed"></i> ir receiver status'; break
+                    case '304': frameName = '<i class="fa fa-thermometer-half"></i> temperature status'; break
+                    case '306': frameName = '<i class="fa fa-lightbulb-o"></i> dimmer status'; break
+                    case '307': frameName = '<i class="fa fa-bars"></i> blind controller status'; break
+                    case '308': frameName = '<i class="fa fa-stop-circle-o"></i> RGB LED controller status'; break
+                    case '309': frameName = '<i class="fa fa-external-link"></i> open collector output status'; break
                 }
-                $('#frame-type-name').text(frameName)
+                $('#frame-type-name').html(frameName)
             }
             
             $('.property-value-hex').each(function(){
@@ -232,7 +232,7 @@
         <input type="text" id="node-input-gateway" placeholder="Gateway">
     </div>
     <div class="form-row">
-        <label for="node-input-node"><i class="fa fa-microchip"></i> Comp node</label>
+        <label for="node-input-node"><i class="fa fa-desktop"></i> Comp node</label>
         <select id="node-input-node"></select>
     </div>
     <div class="form-row">
@@ -243,7 +243,7 @@
     <hr>
 
     <div class="form-row">
-        <label for="frameType"><i class="fa fa-sign-out"></i> Frame type</label>
+        <label for="frameType"><i class="fa fa-window-maximize"></i> Frame type</label>
         <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX">
         <span id="frame-type-name">custom frame</span>
     </div>
