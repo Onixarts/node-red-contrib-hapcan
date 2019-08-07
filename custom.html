@@ -5,8 +5,8 @@
         defaults: {
             gateway: {type:"hapcan-gateway", required: true},
             name: {value:""},
-            group: {value: 240, required: true, validate: function(val){return (val > 0 && val < 256);} },
-            node: {value: 240, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            group: {value: 240, required: true, validate: function(val){return (val >= 0 && val < 256);} },
+            node: {value: 240, required: true, validate: function(val){return (val >= 0 && val < 256);}},
             frameType: {value: 266, required: true, validate: function(val) {if(!Number.isInteger(val)) return false; if(Number(val)<0 || Number(val)> 4095) return false; return true;} },
             d0name: {value:''},
             d1name: {value:''},
@@ -36,9 +36,52 @@
         labelStyle: function() { return this.name?"node_label_italic":""; } ,
         inputLabels: "custom control",
         oneditprepare: function() {
+            
+            const hapcanFrames = [
+                    { type: "header", icon: "",                     name: "System frames",                      frame: [] },
+                    { type: "010", icon: "fa-fire",                 name: "all exit from programming mode",     frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']], compNode: 0, compGroup: 0 },
+                    { type: "020", icon: "fa-fire",                 name: "node exit from programming mode",    frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']], compNode: 255, compGroup: 255},
+                    { type: "030", icon: "fa-warning",              name: "programming address frame",          frame: [['adru','FF'],['adrh','FF'],['adrl','FF'],['','FF'],['','FF'],['cmd','FF'],['','FF'],['','FF']], compNode: 255, compGroup: 255 },
+                    { type: "040", icon: "fa-warning",              name: "programming data frame (write)",     frame: [['d0','FF'],['d1','FF'],['d2','FF'],['d3','FF'],['d4','FF'],['d5','FF'],['d6','FF'],['d7','FF']], compNode: 255, compGroup: 255  },
+                    { type: "0F0", icon: "fa-exclamation-circle",   name: "error frame",                        frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "100", icon: "fa-fire",                 name: "node enter programming mode",        frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "101", icon: "fa-warning",              name: "group reboot",                       frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "102", icon: "fa-warning",              name: "node reboot",                        frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "103", icon: "fa-question-circle",      name: "group serial numbers request",       frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "104", icon: "fa-question-circle",      name: "node serial number request",         frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "105", icon: "fa-question-circle",      name: "group firmware request",             frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "106", icon: "fa-question-circle",      name: "node firmware request",              frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "107", icon: "fa-warning",              name: "node set default ID",                frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "108", icon: "fa-list",                 name: "group status request",               frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "109", icon: "fa-list",                 name: "node status request",                frame: [['','FF'],['','FF'],['node','FF'],['grop','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10A", icon: "fa-gears",                name: "execute node instruction",           frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10B", icon: "fa-bolt",                 name: "group power supply voltage request", frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10C", icon: "fa-bolt",                 name: "node power supply voltage request",  frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10D", icon: "fa-font",                 name: "group description request",          frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10E", icon: "fa-font",                 name: "node description request",           frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10F", icon: "fa-microchip",            name: "group processor ID request",         frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "111", icon: "fa-microchip",            name: "node processor ID request",          frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "112", icon: "fa-clock-o",              name: "group uptime request",               frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "113", icon: "fa-clock-o",              name: "node uptime request",                frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "114", icon: "fa-heartbeat",            name: "group health check request",         frame: [['cmd','01'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "115", icon: "fa-heartbeat",            name: "node health check request",          frame: [['cmd','01'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "divider", icon: "",                    name: "",                                   frame: [] },
+                    { type: "header", icon: "",                     name: "Devices status frames",              frame: [] },
+                    { type: "300", icon: "fa-clock-o",              name: "real time clock status",             frame: [['','FF'],['year','19'],['month','01'],['date','01'],['day','01'],['hour','00'],['min','00'],['sec','00']] },
+                    { type: "301", icon: "fa-hand-o-down",          name: "button status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['led','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "302", icon: "fa-power-off",            name: "relay status",                       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['instr1','FF'],['instr2','FF'],['timer','FF'],['','FF']] },
+                    { type: "303", icon: "fa-feed",                 name: "ir receiver status",                 frame: [['','FF'],['','FF'],['codeType','FF'],['code1','FF'],['code2','FF'],['code3','FF'],['','FF'],['','FF']] },
+                    { type: "304", icon: "fa-thermometer-half",     name: "temperature status",                 frame: [['','FF'],['','FF'],['dataType','11'],['tempMsb','FF'],['tempLsb','FF'],['setPoMsb','FF'],['setPoLsb','FF'],['hyster','FF']] },
+                    { type: "306", icon: "fa-lightbulb-o",          name: "dimmer status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "307", icon: "fa-bars",                 name: "blind controller status",            frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['move','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "308", icon: "fa-stop-circle-o",        name: "RGB LED controller status",          frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['relay','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "309", icon: "fa-external-link",        name: "open collector output status",       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['','FF'],['timer','FF']] }
+            ]
+            
             var nodeOptions = '';
             var groupOptions = '';
-            for(var i = 1; i < 256; i++)
+
+            for(var i = 0; i < 256; i++)
             {
                 var selectedNode = '';
                 if((Number(this.node) === i))
@@ -51,6 +94,7 @@
                 
                 groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
             }
+
             
             $("#node-input-node").append(nodeOptions).on("change", function(){computePreview()});
             $("#node-input-group").append(groupOptions).on("change", function(){computePreview()});
@@ -87,46 +131,53 @@
                 $('table.frame-preview td:nth-child(14)').text(('00'+sum.toString(16)).substr(-2))
             }
 
+            var frameTypeOptions = '';
+            for(var i = 0; i < hapcanFrames.length; i++){
+                if(hapcanFrames[i].type === 'divider')
+                    frameTypeOptions += '<li class="divider"></li>'
+                else if(hapcanFrames[i].type === 'header')
+                    frameTypeOptions += `<li class="dropdown-header">${hapcanFrames[i].name}</li>`
+                else
+                    frameTypeOptions += `<li><a href="#" data-frame-type="${hapcanFrames[i].type}"><i class="fa ${hapcanFrames[i].icon}"></i> ${hapcanFrames[i].name} <span>${hapcanFrames[i].type}</span></a></li>`
+            }
+
+            $('#hapcan-frames').append(frameTypeOptions)
+            $('#hapcan-frames a').each(function(){
+                $(this).click(function(){
+                    var frameType = $(this).attr('data-frame-type')
+                    for(let i= 0; i < hapcanFrames.length; i++){
+                    if( hapcanFrames[i].type === frameType)
+                    {
+                        $('#frame-type').val(frameType)
+                        updateFrameTypeName()
+
+                        if(hapcanFrames[i].compNode !== undefined )
+                            $('#node-input-node option').removeProp('selected').filter(`[value=${hapcanFrames[i].compNode}]`).prop('selected', true).trigger('change')
+                        if(hapcanFrames[i].compGroup !== undefined )
+                            $('#node-input-group option').removeProp('selected').filter(`[value=${hapcanFrames[i].compGroup}]`).prop('selected', true).trigger('change')
+
+                        $('.databytes .property-name').each(function(j){
+                            $(this).val(hapcanFrames[i].frame[j][0])
+                            $(this).next().val(hapcanFrames[i].frame[j][1]).trigger('change')
+                        })
+                        break
+                    }
+                }
+
+                })
+            })
+
             function updateFrameTypeName(){
-                var val = $('#frame-type').val()
+                var val = $('#frame-type').val().toUpperCase()
 
                 var frameName = 'custom frame'
-                switch(val.toUpperCase()){
-                    case '010': frameName = '<i class="fa fa-fire"></i> all exit from programming mode'; break
-                    case '020': frameName = '<i class="fa fa-fire"></i> node exit from programming mode'; break
-                    case '030': frameName = '<i class="fa fa-warning"></i> programming address frame'; break
-                    case '040': frameName = '<i class="fa fa-warning"></i> programming data frame'; break
-                    case '0F0': frameName = '<i class="fa fa-exclamation-circle"></i> error frame'; break
-                    case '101': frameName = '<i class="fa fa-warning"></i> reset group request'; break
-                    case '102': frameName = '<i class="fa fa-warning"></i> reset node request'; break
-                    case '103': frameName = '<i class="fa fa-question-circle"></i> group serial numbers request'; break
-                    case '104': frameName = '<i class="fa fa-question-circle"></i> node serial number request'; break
-                    case '105': frameName = '<i class="fa fa-question-circle"></i> group firmware request'; break
-                    case '106': frameName = '<i class="fa fa-question-circle"></i> node firmware request'; break
-                    case '107': frameName = '<i class="fa fa-warning"></i> set node default ID'; break
-                    case '108': frameName = '<i class="fa fa-list"></i> group status request'; break
-                    case '109': frameName = '<i class="fa fa-list"></i> node status request'; break
-                    case '10A': frameName = '<i class="fa fa-gears"></i> execute node instruction'; break
-                    case '10B': frameName = '<i class="fa fa-bolt"></i> group power supply voltage request'; break
-                    case '10C': frameName = '<i class="fa fa-bolt"></i> node power supply voltage request'; break
-                    case '10D': frameName = '<i class="fa fa-font"></i> group description request'; break
-                    case '10E': frameName = '<i class="fa fa-font"></i> node description request'; break
-                    case '10F': frameName = '<i class="fa fa-microchip"></i> group processor ID request'; break
-                    case '111': frameName = '<i class="fa fa-microchip"></i> node processor ID request'; break
-                    case '112': frameName = '<i class="fa fa-clock-o"></i> group uptime request'; break
-                    case '113': frameName = '<i class="fa fa-clock-o"></i> node uptime request'; break
-                    case '114': frameName = '<i class="fa fa-heartbeat"></i> group health check request'; break
-                    case '115': frameName = '<i class="fa fa-heartbeat"></i> node health check request'; break
 
-                    case '300': frameName = '<i class="fa fa-clock-o"></i> real time clock status'; break
-                    case '301': frameName = '<i class="fa fa-hand-o-down"></i> button status'; break
-                    case '302': frameName = '<i class="fa fa-power-off"></i> relay status'; break
-                    case '303': frameName = '<i class="fa fa-feed"></i> ir receiver status'; break
-                    case '304': frameName = '<i class="fa fa-thermometer-half"></i> temperature status'; break
-                    case '306': frameName = '<i class="fa fa-lightbulb-o"></i> dimmer status'; break
-                    case '307': frameName = '<i class="fa fa-bars"></i> blind controller status'; break
-                    case '308': frameName = '<i class="fa fa-stop-circle-o"></i> RGB LED controller status'; break
-                    case '309': frameName = '<i class="fa fa-external-link"></i> open collector output status'; break
+                for(let i= 0; i < hapcanFrames.length; i++){
+                    if( hapcanFrames[i].type === val)
+                    {
+                        frameName = `<i class="fa ${hapcanFrames[i].icon}"></i> ${hapcanFrames[i].name}`
+                        break
+                    }
                 }
                 $('#frame-type-name').html(frameName)
             }
@@ -192,15 +243,22 @@
         .databytes .property-value-hex {
             width: 40px;
             text-transform:uppercase;
+            text-align: center;
         }
 
         #frame-type {
             width: 50px;
             text-transform:uppercase;
+            text-align: center;
+            margin-right: 0;
+            border-bottom-right-radius: 0px;
+            border-top-right-radius: 0px;
+            border-right: none;
         }
      
         .databytes .property-value-dec {
             width: 50px;
+            text-align: right;
         }
         table.frame-preview {
             width: 100%;
@@ -222,7 +280,33 @@
             background-color: #fafafa;
         }
 
+        .frame-type-container {
+            position: relative;
+        }
+
+        .frame-type-container .dropbtn {
+            display: inline-block;
+            color: black;
+            text-align: center;
+            padding: 5px 8px;
+            text-decoration: none;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            margin-left: 0;
+            border-radius: 0px 4px 4px 0px;
+            height: 22px;
+        }
+        .frame-type-container .dropdown-menu a span {
+            color: #888;
+            margin-left: 20px;
+            float: right;
+        }
+        .frame-type-container .dropdown-menu a:hover span {
+            color: #ddd;
+        }
     </style>
+
+
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Device name">
@@ -232,19 +316,21 @@
         <input type="text" id="node-input-gateway" placeholder="Gateway">
     </div>
     <div class="form-row">
-        <label for="node-input-node"><i class="fa fa-desktop"></i> Comp node</label>
+        <label for="node-input-node"><i class="fa fa-desktop"></i> Sender node</label>
         <select id="node-input-node"></select>
     </div>
     <div class="form-row">
-        <label for="node-input-group"><i class="fa fa-th"></i> Comp group</label>
+        <label for="node-input-group"><i class="fa fa-th"></i> Sender group</label>
         <select id="node-input-group"></select>
     </div>
 
     <hr>
 
-    <div class="form-row">
+    <div class="form-row frame-type-container">
         <label for="frameType"><i class="fa fa-window-maximize"></i> Frame type</label>
-        <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX">
+        <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX"><a href="#" class="dropbtn" data-toggle="dropdown"><i class="fa fa-caret-down"></i></a>
+        <ul id="hapcan-frames" class="dropdown-menu" style="width: auto !important;">
+        </ul>
         <span id="frame-type-name">custom frame</span>
     </div>
 
@@ -325,41 +411,45 @@
 </script>
 
 <script type="text/x-red" data-help-name="custom-output">
-    <p>Allows controlling any of the Hapcan and Hapcan's compatible modules.</p>
-    <p>The node allows you to send custom message to any device. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    <p>Allows controlling any of the Hapcan's and Hapcan's compatible modules.</p>
+    <p>The node send custom message to any device. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
     
+    <h3>Configuration</h3>
+    <p>    
+        <ul>
+            <li><b>Comp node</b> is the computer node number, which sends the message to the hapcan bus.</li>
+            <li><b>Comp group</b> is the computer group number, which sends the message to the hapcan bus.</li>
+            <li><b>Frame type</b> is the hex frame identifier that gives meaning to the data being sent. Node will recognize each Hapcan's specific frame type and will display 
+            frame name on the right side. For example, frame type 0x10A is the node control direct message, You can use it to control any of the device - for example one does not have its
+            own dedicated output node. It is also a warning message when You put some system defined frame type by mistake - which can cause some unexpected results when data is not correct.</li>
+            <li><b>D[0-7] fields</b> this fields represents 8 frame data bytes. You can name each byte just for clarity, but this names can also be used as an input message properties which will override
+            default values set in configuration. Next two fields are the default data byte values, one in hex, one in decimal system (just for Your comfort :) ). Editing one will automatically compute value in other system.</li>
+            <li><b>Frame preview</b> below is the read only frame visualisation that reflects node configuration.</li>
+        </ul>
+    </p>
     <h3>Inputs</h3>
     <dl class="message-properties">
-        <dt>payload <span class="property-type">string | number | bool | any | object</span></dt>
-        <dd>Any input message will perform default action. If topic is set to <i>control</i> the payload will control the Relay module.</dd>
+        <dt>payload <span class="property-type">any | object</span></dt>
+        <dd>Any input message will send configured message to the hapcan bus. If topic is set to <i>control</i> the payload can override the default configuration data values.</dd>
 
         <dt class="optional">topic <span class="property-type">string</span></dt>
-        <dd>Topic is optional. When a <i>control</i> value is provided it will overrides default action settings and allows controlling of the node directly.</dd>
+        <dd>Topic is optional. When a <i>control</i> value is provided the payload will be used to override the default configuration data values.</dd>
     </dl>
     
     <h3>Details</h3>
-    <p>The default node behaviour on any input message is to execute the action specified in properties. 
-        When <code>msg.topic</code> is set to <i>control</i> then input value will control node in several ways. In control mode the <code>msg.payload</code> 
-        can be one of the following types:
+    <p>The default node behaviour on any input message is to send message (hapcan frame) specified in the node properties. 
+        When <code>msg.topic</code> is set to <i>control</i> then the input value will override properties defined in the node configuration.
     </p>
     <dl class="message-properties">
-        <dt>string</dt> 
-        <dd>Value of <i>on</i>, <i>off</i> or <i>toggle</i> will control the default channel. Other strings are ignored. Case insensitive.</dd>
-
-        <dt>number</dt> 
-        <dd>Hapcan's Relay module instruction. 0(off), 1(on) or 2(toggle) will control the default channel. Other values are ignored.</dd>            
-
-        <dt>boolean</dt> 
-        <dd>Output will turn ON when value is true, otherwise it will turn OFF. This type is easy to use with UI switch control.</dd>
 
         <dt>object</dt> 
-        <dd>Gives an ability to override node default parameters. See details below.</dd>
+        <dd>Gives an ability to override node default properties. See details below.</dd>
         
     </dl>
-    <h3>Full control object definition</h3>
+    <h3>Control object definition</h3>
     <p>
-        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control Relay module. Below are the possible properties list that can be specified. 
-        If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows frame data overriding.
+
     </p>
     <dl class="message-properties">
         <dt>channels <span class="property-type">number | array</span></dt> 
