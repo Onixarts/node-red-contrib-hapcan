@@ -8,14 +8,21 @@ module.exports = function(RED) {
         node.compNode = Number(config.node);
         node.name = config.name;
         node.frameType = Number(config.frameType)
-        node.d0name = config.d0name
-        node.d1name = config.d1name
-        node.d2name = config.d2name
-        node.d3name = config.d3name
-        node.d4name = config.d4name
-        node.d5name = config.d5name
-        node.d6name = config.d6name
-        node.d7name = config.d7name
+        node.dataNames = [
+            { byte: 5, name: config.d0name },
+            { byte: 6, name: config.d1name },
+            { byte: 7, name: config.d2name },
+            { byte: 8, name: config.d3name },
+            { byte: 9, name: config.d4name },
+            { byte: 10, name: config.d5name },
+            { byte: 11, name: config.d6name },
+            { byte: 12, name: config.d7name }
+        ]
+        
+        node.namedDataBytes = node.dataNames.filter(function(current){
+            return current.name !== ''
+        })
+
         node.d0value = Number(config.d0value)
         node.d1value = Number(config.d1value)
         node.d2value = Number(config.d2value)
@@ -58,66 +65,25 @@ module.exports = function(RED) {
             hapcanMsg[11] = node.d6value
             hapcanMsg[12] = node.d7value
             
-            // if(msg.topic === "control" )
-            // {
-            //     if(typeof msg.payload === 'object')
-            //     {
-            //         if( msg.payload.hasOwnProperty('action'))
-            //         {
-            //             if(!parseAction(msg.payload.action, control))
-            //                 return;
-            //         }
-            //         if( msg.payload.hasOwnProperty('channels'))
-            //         {
-            //             control.channels = 0;
-            //             if(typeof msg.payload.channels === 'number')
-            //             {
-            //                 if(!isChannelValid(msg.payload.channels))
-            //                     return;
-            //                 control.channels = 0x01 << (msg.payload.channels -1);
-            //             }
-            //             else if(Array.isArray(msg.payload.channels))
-            //             {
-            //                 for(var i = 0; i < msg.payload.channels.length; i++)
-            //                 {
-            //                     if(!isChannelValid(msg.payload.channels[i]))
-            //                         return;
-            //                     control.channels |= 0x01 << (msg.payload.channels[i] - 1);
-            //                 }
-            //             }
-            //             else
-            //             {
-            //                 node.error('Invalid channels type: '+ typeof msg.payload.channels); 
-            //                 return;
-            //             }
-            //         }
-            //     }
-            //     else
-            //     {
-            //         if(!parseAction(msg.payload, control))
-            //             return;
-            //     }
-            // }
+            let messageModified = false
 
-            // if( control.action === -1 )
-            //     return;
-            // if( control.channels === 0 )
-            //     return;
-
-            
-            
-            // if(node.UNIV === 1)
-            // {
-            //     hapcanMsg[10] = control.action;
-            //     hapcanMsg[11] = control.channels;
-            //     hapcanMsg[12] = control.delay;   
-            // }
-            // else
-            // {
-            //     hapcanMsg[5] = control.action;
-            //     hapcanMsg[6] = control.channels;
-            //     hapcanMsg[9] = control.delay;
-            // }
+            if(msg.topic === "control" )
+            {
+                if(typeof msg.payload === 'object')
+                {
+                    for(let i = 0; i < node.namedDataBytes.length; i++){
+                        let namedDataByte = node.namedDataBytes[i]
+                        if (msg.payload[namedDataByte.name] !== undefined ){
+                            console.log( msg.payload[namedDataByte.name])
+                            hapcanMsg[namedDataByte.byte] = msg.payload[namedDataByte.name]
+                            messageModified = true
+                        }
+                    }
+                }
+                // do not send hapcan frame if control message doesn't modiffy the frame
+                if(!messageModified)
+                    return
+            }
 
             msg.payload = hapcanMsg;
             msg.topic = 'control';
