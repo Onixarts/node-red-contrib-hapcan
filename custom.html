@@ -411,18 +411,21 @@
 </script>
 
 <script type="text/x-red" data-help-name="custom-output">
-    <p>Allows controlling any of the Hapcan's and Hapcan's compatible modules.</p>
-    <p>The node send custom message to any device. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    <p>Node send any of the Hapcan's and Hapcan's compatible modules messages.</p>
+    <p>It can be used to control any Hapcan's device. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
     
     <h3>Configuration</h3>
     <p>    
         <ul>
-            <li><b>Comp node</b> is the computer node number, which sends the message to the hapcan bus.</li>
-            <li><b>Comp group</b> is the computer group number, which sends the message to the hapcan bus.</li>
-            <li><b>Frame type</b> is the hex frame identifier that gives meaning to the data being sent. Node will recognize each Hapcan's specific frame type and will display 
-            frame name on the right side. For example, frame type 0x10A is the node control direct message, You can use it to control any of the device - for example one does not have its
-            own dedicated output node. It is also a warning message when You put some system defined frame type by mistake - which can cause some unexpected results when data is not correct.</li>
-            <li><b>D[0-7] fields</b> this fields represents 8 frame data bytes. You can name each byte just for clarity, but this names can also be used as an input message properties which will override
+            <li><b>Sender node</b> is the message sender node number. Some of the low level programming messages using this value to adress a device being programmed.</li>
+            <li><b>Sender group</b> is the message sender group number. Some of the low level programming messages using this value to adress a device being programmed.</li>
+            <li><b>Frame type</b> is the hex frame identifier that gives meaning to the data being sent. You can type any number here, but when the node recognizes any of the Hapcan's specific frame type
+            it displays its short description on the right side. For example, frame type 0x10A is the node control direct message. It is good practise to stick with Hapcan frames type system, so any hapcan monitor can also recognize 
+            the frames. <br>
+            You can use it to control any of the device - for example one does not have its own dedicated output node. It is also a warning message when You put some system defined frame type by mistake - which can cause some unexpected results when data is not correct.</li>
+            <br>
+            There is also a preset dropdown menu, so You can prepare hapcan's frames quickly. But in most cases You will be using a `0x10A` frame which is <b>execute node instruction</b> frame.
+            <li><b>D[0-7] fields</b> represents 8 frame data bytes. You can name each byte just for clarity, but this names can also be used as an input message properties which will override
             default values set in configuration. Next two fields are the default data byte values, one in hex, one in decimal system (just for Your comfort :) ). Editing one will automatically compute value in other system.</li>
             <li><b>Frame preview</b> below is the read only frame visualisation that reflects node configuration.</li>
         </ul>
@@ -439,35 +442,27 @@
     <h3>Details</h3>
     <p>The default node behaviour on any input message is to send message (hapcan frame) specified in the node properties. 
         When <code>msg.topic</code> is set to <i>control</i> then the input value will override properties defined in the node configuration.
+        <b>Be warned</b>, that You are responsible for sending proper frames to Hapcan bus. Sending incorrect farmes can cause in unpredictable results, like device reboot or switch 
+        it to the programming mode. You should follow the device firmware instructions.
     </p>
-    <dl class="message-properties">
 
-        <dt>object</dt> 
-        <dd>Gives an ability to override node default properties. See details below.</dd>
-        
-    </dl>
     <h3>Control object definition</h3>
     <p>
-        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows frame data overriding.
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows frame data overriding. The list of possible fields names is up to You and is 
+        configured by defining data bytes names. For example, when You name byte <code>D1</code> as <code>channel</code>, then the node will search in the message payload for
+        <code>channel</code> property and put its value to the sending frame instead of the default one.
 
     </p>
     <dl class="message-properties">
-        <dt>channels <span class="property-type">number | array</span></dt> 
-        <dd>Single number value or number array of selected channels to perform the action.</dd>
-
-        <dt>action <span class="property-type">string | number | bool</span></dt></dt> 
-        <dd>String or number action representation. See <code>msg.payload</code> description above for details.</dd>
-
-        <!-- <dt>delay <span class="property-type">string | number</span></dt></dt> 
-        <dd>Delay value as a string or Hapcan delay value.</dd> -->
+        <dt><i>property_name</i> <span class="property-type">number|srting</span></dt> 
+        <dd>Each property name of Your choice can be either integer as a number or string. Note that values has to be in 0-255 range and will be truncated
+            to this values if larger or smaller values will be provided.
+        </dd>
     </dl>
-    
-    <p>Default module version is UNIV-3. You can select UNIV-1 support in settings.</p>
     
     <h3>References</h3>
     <ul>
-        <li><a href="http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm">Hapcan relays UNIV-3</a> - module firmware notes.</li>
-        <li><a href="http://hapcan.com/devices/universal/univ_v1-0/univ_v1-0-2-0/index.htm">Hapcan relays UNIV-1</a> - firmware notes.</li>
+        <li><a href="https://hapcan.com/">Hapcan modules</a></li>
     </ul>
 
 </script>
