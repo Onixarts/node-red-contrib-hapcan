@@ -69,7 +69,7 @@
                     { type: "header", icon: "",                     name: "Devices status frames",              frame: [] },
                     { type: "300", icon: "fa-clock-o",              name: "real time clock status",             frame: [['','FF'],['year','19'],['month','01'],['date','01'],['day','01'],['hour','00'],['min','00'],['sec','00']] },
                     { type: "301", icon: "fa-hand-o-down",          name: "button status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['led','FF'],['','FF'],['','FF'],['','FF']] },
-                    { type: "302", icon: "fa-power-off",            name: "relay status",                       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['instr1','FF'],['instr2','FF'],['timer','FF'],['','FF']] },
+                    { type: "302", icon: "fa-power-off",            name: "relay status",                       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
                     { type: "303", icon: "fa-feed",                 name: "ir receiver status",                 frame: [['','FF'],['','FF'],['codeType','FF'],['code1','FF'],['code2','FF'],['code3','FF'],['','FF'],['','FF']] },
                     { type: "304", icon: "fa-thermometer-half",     name: "temperature status",                 frame: [['','FF'],['','FF'],['dataType','11'],['tempMsb','FF'],['tempLsb','FF'],['setPoMsb','FF'],['setPoLsb','FF'],['hyster','FF']] },
                     { type: "306", icon: "fa-lightbulb-o",          name: "dimmer status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
@@ -247,7 +247,7 @@
         }
 
         #frame-type {
-            width: 50px;
+            width: 60px;
             text-transform:uppercase;
             text-align: center;
             margin-right: 0;
@@ -478,8 +478,7 @@
             name: {value:""},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
-            frameTypeFilter: {value: '', validate: function(val){
-                if(val === '') return true; 
+            frameTypeFilter: {value: '000', validate: function(val){
                 var type = Number(val); 
                 if(!Number.isInteger(type)) 
                     return false; 
@@ -509,6 +508,35 @@
         },
         labelStyle: function() { return this.name?"node_label_italic":""; } ,
         oneditprepare: function() {
+            const hapcanFrames = [
+                    { type: "header", icon: "",                     name: "Common",                             frame: [] },
+                    { type: "000", icon: "fa-align-justify",        name: "any frame type",                     frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "header", icon: "",                     name: "Devices status frames",              frame: [] },
+                    { type: "300", icon: "fa-clock-o",              name: "real time clock status",             frame: [['','FF'],['year','19'],['month','01'],['date','01'],['day','01'],['hour','00'],['min','00'],['sec','00']] },
+                    { type: "301", icon: "fa-hand-o-down",          name: "button status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['led','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "302", icon: "fa-power-off",            name: "relay status",                       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "303", icon: "fa-feed",                 name: "ir receiver status",                 frame: [['','FF'],['','FF'],['codeType','FF'],['code1','FF'],['code2','FF'],['code3','FF'],['','FF'],['','FF']] },
+                    { type: "304", icon: "fa-thermometer-half",     name: "temperature status",                 frame: [['','FF'],['','FF'],['dataType','11'],['tempMsb','FF'],['tempLsb','FF'],['setPoMsb','FF'],['setPoLsb','FF'],['hyster','FF']] },
+                    { type: "306", icon: "fa-lightbulb-o",          name: "dimmer status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "307", icon: "fa-bars",                 name: "blind controller status",            frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['move','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "308", icon: "fa-stop-circle-o",        name: "RGB LED controller status",          frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['relay','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "309", icon: "fa-external-link",        name: "open collector output status",       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['','FF'],['timer','FF']] }
+            ]
+
+            function updateFrameTypeName(){
+                var val = $('#frame-type').val().toUpperCase()
+
+                var frameName = 'custom frame type'
+                for(let i= 0; i < hapcanFrames.length; i++){
+                    if( hapcanFrames[i].type === val)
+                    {
+                        frameName = `<i class="fa ${hapcanFrames[i].icon}"></i> ${hapcanFrames[i].name}`
+                        break
+                    }
+                }
+
+                $('#frame-type-name').html(frameName)
+            }
 
             var nodeOptions = '';
             var groupOptions = '';
@@ -528,14 +556,117 @@
             
             $("#node-input-node").append(nodeOptions);
             $("#node-input-group").append(groupOptions);
+
+            $('#frame-type').val( this.frameTypeFilter)
+            updateFrameTypeName()
+
+            var frameTypeOptions = '';
+            for(var i = 0; i < hapcanFrames.length; i++){
+                if(hapcanFrames[i].type === 'divider')
+                    frameTypeOptions += '<li class="divider"></li>'
+                else if(hapcanFrames[i].type === 'header')
+                    frameTypeOptions += `<li class="dropdown-header">${hapcanFrames[i].name}</li>`
+                else
+                    frameTypeOptions += `<li><a href="#" data-frame-type="${hapcanFrames[i].type}"><i class="fa ${hapcanFrames[i].icon}"></i> ${hapcanFrames[i].name} <span>${hapcanFrames[i].type}</span></a></li>`
+            }
+            $('#hapcan-frames').append(frameTypeOptions)
+            $('#hapcan-frames a').each(function(){
+                $(this).click(function(){
+                    var frameType = $(this).attr('data-frame-type')
+                    for(let i= 0; i < hapcanFrames.length; i++){
+                    if( hapcanFrames[i].type === frameType)
+                    {
+                        $('#frame-type').val(frameType)
+                        updateFrameTypeName()
+
+                        if(hapcanFrames[i].compNode !== undefined )
+                            $('#node-input-node option').removeProp('selected').filter(`[value=${hapcanFrames[i].compNode}]`).prop('selected', true).trigger('change')
+                        if(hapcanFrames[i].compGroup !== undefined )
+                            $('#node-input-group option').removeProp('selected').filter(`[value=${hapcanFrames[i].compGroup}]`).prop('selected', true).trigger('change')
+
+                        $('.databytes .property-name').each(function(j){
+                            $(this).val(hapcanFrames[i].frame[j][0])
+                        })
+                        break
+                    }
+                }
+
+                })
+            })
+
+            $('.property-value-hex').each(function(){
+                $(this).keypress(function(event) {
+                    var regex = new RegExp("^[a-fA-F0-9]+$");
+                    var key = String.fromCharCode(!event.charCode ? event.which : event.charCode);
+                    if (!regex.test(key)) {
+                        event.preventDefault();
+                        return false;
+                    }
+                })
+                $(this).on("change paste keyup", function(){
+                    updateFrameTypeName()
+                })
+
+                $(this).on("change", function(){
+                    var max = Number($(this).attr('maxlength'))
+                    var val = ('000' + $(this).val()).substr(-1*max) 
+                    $(this).val(val)
+
+                    updateFrameTypeName()
+                })                
+            })
+
         },
         oneditsave: function(){
+            this.frameTypeFilter = $('#frame-type').val()
         }
         });
 
 </script>
 
 <script type="text/x-red" data-template-name="custom-input">
+    <style>
+
+        .databytes .property-name {
+            width: 23%;
+        }
+
+        #frame-type {
+            width: 60px;
+            text-transform:uppercase;
+            text-align: center;
+            margin-right: 0;
+            border-bottom-right-radius: 0px;
+            border-top-right-radius: 0px;
+            border-right: none;
+        }
+
+        .frame-type-container {
+            position: relative;
+        }
+
+        .frame-type-container .dropbtn {
+            display: inline-block;
+            color: black;
+            text-align: center;
+            padding: 5px 8px;
+            text-decoration: none;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            margin-left: 0;
+            border-radius: 0px 4px 4px 0px;
+            height: 22px;
+        }
+        .frame-type-container .dropdown-menu a span {
+            color: #888;
+            margin-left: 20px;
+            float: right;
+        }
+        .frame-type-container .dropdown-menu a:hover span {
+            color: #ddd;
+        }        
+    </style>
+
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Device name">
@@ -553,58 +684,50 @@
         <select id="node-input-group"></select>
     </div>
 
-    <div class="form-row">
-        <label for="node-input-frameTypeFilter"><i class="fa fa-sign-out"></i> Frame filter</label>
-        <input type="text" id="node-input-frameTypeFilter" placeholder="Leave empty to receive all types">
+    <div class="form-row frame-type-container">
+            <label for="frameType"><i class="fa fa-window-maximize"></i> Frame filter</label>
+            <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX"><a href="#" class="dropbtn" data-toggle="dropdown"><i class="fa fa-caret-down"></i></a>
+            <ul id="hapcan-frames" class="dropdown-menu" style="width: auto !important;">
+            </ul>
+            <span id="frame-type-name"> receive any frame type</span>
     </div>
+
     <hr>
 
-    <div class="form-row">
-        <label for="node-input-d0name"><i class="fa fa-cube"></i> D0 name</label>
-        <input type="text" id="node-input-d0name" placeholder="Data byte 0 property name">
+    <div class="databytes">
+        <div class="form-row">
+            <label for="node-input-d0name"><i class="fa fa-cube"></i> D0</label>
+            <input class="property-name" type="text" id="node-input-d0name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d1name"><i class="fa fa-cube"></i> D1</label>
+            <input class="property-name" type="text" id="node-input-d1name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d2name"><i class="fa fa-cube"></i> D2</label>
+            <input class="property-name" type="text" id="node-input-d2name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d3name"><i class="fa fa-cube"></i> D3</label>
+            <input class="property-name" type="text" id="node-input-d3name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d4name"><i class="fa fa-cube"></i> D4</label>
+            <input class="property-name" type="text" id="node-input-d4name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d5name"><i class="fa fa-cube"></i> D5</label>
+            <input class="property-name" type="text" id="node-input-d5name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d6name"><i class="fa fa-cube"></i> D6</label>
+            <input class="property-name" type="text" id="node-input-d6name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d7name"><i class="fa fa-cube"></i> D7</label>
+            <input class="property-name" type="text" id="node-input-d7name" placeholder="property name">
+        </div>
     </div>
-    <div class="form-row">
-            <label for="node-input-d1name"><i class="fa fa-cube"></i> D1 name</label>
-            <input type="text" id="node-input-d1name" placeholder="Data byte 1 property name">
-    </div>
-    <div class="form-row">
-            <label for="node-input-d2name"><i class="fa fa-cube"></i> D2 name</label>
-            <input type="text" id="node-input-d2name" placeholder="Data byte 2 property name">
-    </div>
-    <div class="form-row">
-            <label for="node-input-d3name"><i class="fa fa-cube"></i> D3 name</label>
-            <input type="text" id="node-input-d3name" placeholder="Data byte 3 property name">
-    </div>
-    <div class="form-row">
-            <label for="node-input-d4name"><i class="fa fa-cube"></i> D4 name</label>
-            <input type="text" id="node-input-d4name" placeholder="Data byte 4 property name">
-    </div>
-    <div class="form-row">
-            <label for="node-input-d5name"><i class="fa fa-cube"></i> D5 name</label>
-            <input type="text" id="node-input-d5name" placeholder="Data byte 5 property name">
-    </div>
-    <div class="form-row">
-            <label for="node-input-d6name"><i class="fa fa-cube"></i> D6 name</label>
-            <input type="text" id="node-input-d6name" placeholder="Data byte 6 property name">
-    </div>
-    <div class="form-row">
-            <label for="node-input-d7name"><i class="fa fa-cube"></i> D7 name</label>
-            <input type="text" id="node-input-d7name" placeholder="Data byte 7 property name">
-    </div>
-    
-    
-    <!-- <div class="form-row">
-        <label style="width: auto;"><i class="fa fa-envelope-o"></i> Set <b>userField</b> value for states:</label>
-    </div>
-    <div class="form-row">
-        <label style="padding-left: 25px; margin-right: -25px;" for="node-input-userFieldStateON"><i class="fa fa-circle"></i> ON</label>
-        <input type="text" id="node-input-userFieldStateON" >
-    </div>
-    <div class="form-row">
-        <label style="padding-left: 25px; margin-right: -25px;" for="node-input-userFieldStateOFF"><i class="fa fa-circle"></i> OFF</label>
-        <input type="text" id="node-input-userFieldStateOFF" >
-    </div> -->
-  
 </script>
 
 <script type="text/x-red" data-help-name="custom-input">
