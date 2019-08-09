@@ -74,8 +74,8 @@ module.exports = function(RED) {
                     for(let i = 0; i < node.namedDataBytes.length; i++){
                         let namedDataByte = node.namedDataBytes[i]
                         if (msg.payload[namedDataByte.name] !== undefined ){
-                            console.log( msg.payload[namedDataByte.name])
-                            hapcanMsg[namedDataByte.byte] = msg.payload[namedDataByte.name]
+                            
+                            hapcanMsg[namedDataByte.byte] = Math.min(255, Math.max(0, Number(msg.payload[namedDataByte.name]) ) )
                             messageModified = true
                         }
                     }
@@ -136,7 +136,6 @@ module.exports = function(RED) {
             if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
                 return;
 
-            console.log(node.frameTypeFilter)
             if(node.frameTypeFilter !== 0){
                 if(hapcanMessage.frameType !== node.frameTypeFilter)
                     return;
