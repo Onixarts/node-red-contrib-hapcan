@@ -7,7 +7,7 @@ module.exports = function(RED) {
         node.compGroup = Number(config.group);
         node.compNode = Number(config.node);
         node.name = config.name;
-        node.frameType = Number(config.frameType)
+        node.frameType = config.frameType
         node.dataNames = [
             { byte: 5, name: config.d0name },
             { byte: 6, name: config.d1name },
@@ -100,7 +100,7 @@ module.exports = function(RED) {
         node.group = config.group;
         node.node = config.node;
         node.name = config.name;
-        node.frameTypeFilter = Number(config.frameTypeFilter);
+        node.frameTypeFilter = config.frameTypeFilter;
         node.d0name = config.d0name;
         node.d1name = config.d1name;
         node.d2name = config.d2name;
@@ -158,7 +158,7 @@ module.exports = function(RED) {
             if( node.d7name !== '')
                 hapcanMessage[node.d7name] = hapcanMessage.frame[12];                
 
-            node.send({topic: 'Custom message', payload: hapcanMessage});
+            node.send({topic: 'Hapcan message', payload: hapcanMessage});
         });
     }
     RED.nodes.registerType("custom-input",CustomMessageInputNode);

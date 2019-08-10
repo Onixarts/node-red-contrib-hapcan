@@ -30,8 +30,7 @@
         icon: "relay-output.png",
         align: 'right',
         label: function() {
-            
-            return (this.name||"custom output") + ' ('+this.node+','+this.group+')';
+            return (this.name||"custom output") + ' ('+this.node+','+this.group+') [0x' + (('000'+ Number(this.frameType).toString(16)).substr(-3).toUpperCase()) +']'
         },
         labelStyle: function() { return this.name?"node_label_italic":""; } ,
         inputLabels: "custom control",
@@ -478,14 +477,7 @@
             name: {value:""},
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
-            frameTypeFilter: {value: '000', validate: function(val){
-                var type = Number(val); 
-                if(!Number.isInteger(type)) 
-                    return false; 
-                if(type<0 || type > 999) 
-                    return false; 
-                return true; 
-            }},
+            frameTypeFilter: {value: 0},
             d0name: {value:''},
             d1name: {value:''},
             d2name: {value:''},
@@ -501,8 +493,8 @@
         align: 'left',
         label: function() {
             let filter = ''
-            if( this.frameTypeFilter > 0 )
-                filter = ` [0x${this.frameTypeFilter}]`;
+            if( Number(this.frameTypeFilter) !== 0 )
+                filter = ' [0x'+ ('000'+ (this.frameTypeFilter.toString(16))).substr(-3) + ']'
 
             return (this.name||"custom input") + ' ('+this.node+','+this.group+')' + filter;
         },
@@ -510,7 +502,28 @@
         oneditprepare: function() {
             const hapcanFrames = [
                     { type: "header", icon: "",                     name: "Common",                             frame: [] },
-                    { type: "000", icon: "fa-align-justify",        name: "any frame type",                     frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "000", icon: "fa-align-justify",        name: "any frame type (filter disabled)",   frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "header", icon: "",                     name: "System frames",                      frame: [] },
+                    { type: "030", icon: "fa-warning",              name: "programming address frame",          frame: [['d0','FF'],['d1','FF'],['d2','FF'],['d3','FF'],['d4','FF'],['d5','FF'],['d6','FF'],['d7','FF']] },
+                    { type: "040", icon: "fa-warning",              name: "programming data frame (write)",     frame: [['d0','FF'],['d1','FF'],['d2','FF'],['d3','FF'],['d4','FF'],['d5','FF'],['d6','FF'],['d7','FF']] },
+                    { type: "0F0", icon: "fa-exclamation-circle",   name: "error frame",                        frame: [['','FF'],['','FF'],['bVer1','FF'],['bVer2','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "100", icon: "fa-fire",                 name: "node entered programming mode",      frame: [['','FF'],['','FF'],['bVer1','FF'],['bVer2','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "103", icon: "fa-question-circle",      name: "group serial numbers response",      frame: [['hard1','FF'],['hard2','FF'],['hVer','FF'],['','FF'],['id0','FF'],['id1','FF'],['id2','FF'],['id3','FF']] },
+                    { type: "104", icon: "fa-question-circle",      name: "node serial number response",        frame: [['hard1','FF'],['hard2','FF'],['hVer','FF'],['','FF'],['id0','FF'],['id1','FF'],['id2','FF'],['id3','FF']] },
+                    { type: "105", icon: "fa-question-circle",      name: "group firmware response",            frame: [['hard1','FF'],['hard2','FF'],['hVer','FF'],['aType','FF'],['aVer','FF'],['fVer','FF'],['bVer1','FF'],['bVer2','FF']] },
+                    { type: "106", icon: "fa-question-circle",      name: "node firmware response",             frame: [['hard1','FF'],['hard2','FF'],['hVer','FF'],['aType','FF'],['aVer','FF'],['fVer','FF'],['bVer1','FF'],['bVer2','FF']] },
+                    { type: "107", icon: "fa-warning",              name: "node default ID set",                frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10B", icon: "fa-bolt",                 name: "group power supply voltage response",frame: [['volBus1','FF'],['volBus2','FF'],['volCpu1','00'],['volCpu2','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10C", icon: "fa-bolt",                 name: "node power supply voltage response", frame: [['volBus1','FF'],['volBus2','FF'],['volCpu1','00'],['volCpu2','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10D", icon: "fa-font",                 name: "group description response",         frame: [['abc0_8','FF'],['abc1_9','FF'],['abc2_10','00'],['abc3_11','FF'],['abc4_12','FF'],['abc5_13','FF'],['abc6_14','FF'],['abc7_15','FF']] },
+                    { type: "10E", icon: "fa-font",                 name: "node description response",          frame: [['abc0_8','FF'],['abc1_9','FF'],['abc2_10','00'],['abc3_11','FF'],['abc4_12','FF'],['abc5_13','FF'],['abc6_14','FF'],['abc7_15','FF']] },
+                    { type: "10F", icon: "fa-microchip",            name: "group processor ID response",        frame: [['devId1','FF'],['devId2','FF'],['','00'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "111", icon: "fa-microchip",            name: "node processor ID response",         frame: [['devId1','FF'],['devId2','FF'],['','00'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "112", icon: "fa-clock-o",              name: "group uptime response",              frame: [['','FF'],['','FF'],['','FF'],['','FF'],['uptime3','FF'],['uptime2','FF'],['uptime1','FF'],['uptime0','FF']] },
+                    { type: "113", icon: "fa-clock-o",              name: "node uptime response",               frame: [['','FF'],['','FF'],['','FF'],['','FF'],['uptime3','FF'],['uptime2','FF'],['uptime1','FF'],['uptime0','FF']] },
+                    { type: "114", icon: "fa-heartbeat",            name: "group health check response",        frame: [['frame','FF'],['rxCnt','FF'],['txCnt','FF'],['RxCntMx_RxcntMxE','FF'],['TxCntMx_TxCntMxE','FF'],['CanIntCnt_CanIntCntE','FF'],['RxErrCnt_RxErrCntE','FF'],['TxErrCnt_TxErrCntE','FF']] },
+                    { type: "115", icon: "fa-heartbeat",            name: "node health check response",         frame: [['frame','FF'],['rxCnt','FF'],['txCnt','FF'],['RxCntMx_RxcntMxE','FF'],['TxCntMx_TxCntMxE','FF'],['CanIntCnt_CanIntCntE','FF'],['RxErrCnt_RxErrCntE','FF'],['TxErrCnt_TxErrCntE','FF']] },
+                    { type: "1F1", icon: "fa-frown-o",              name: "incorrect firmware",                 frame: [['firFlags','FF'],['fSum2','FF'],['fSum1','FF'],['fSum0','FF'],['','FF'],['','FF'],['bVer1','FF'],['bVer2','FF']] },
                     { type: "header", icon: "",                     name: "Devices status frames",              frame: [] },
                     { type: "300", icon: "fa-clock-o",              name: "real time clock status",             frame: [['','FF'],['year','19'],['month','01'],['date','01'],['day','01'],['hour','00'],['min','00'],['sec','00']] },
                     { type: "301", icon: "fa-hand-o-down",          name: "button status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['led','FF'],['','FF'],['','FF'],['','FF']] },
@@ -557,7 +570,7 @@
             $("#node-input-node").append(nodeOptions);
             $("#node-input-group").append(groupOptions);
 
-            $('#frame-type').val( this.frameTypeFilter)
+            $('#frame-type').val( ('000'+this.frameTypeFilter.toString(16)).substr(-3) ) 
             updateFrameTypeName()
 
             var frameTypeOptions = '';
@@ -618,7 +631,7 @@
 
         },
         oneditsave: function(){
-            this.frameTypeFilter = $('#frame-type').val()
+            this.frameTypeFilter = parseInt($('#frame-type').val(), 16)
         }
         });
 
@@ -734,12 +747,28 @@
     <p>Receives any Hapcan messages.</p>
     <p>The node emit all messages received from device. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
     
+    <h3>Configuration</h3>
+    <p>    
+        <ul>
+            <li><b>Node</b> - device address, node will emit only this device frames.</li>
+            <li><b>Group</b> - device group address, node will emit only this device frames.</li>
+            <li><b>Frame filter</b> is the hex frame identifier that the node will be listen to. You can type any number here, but when the node recognizes any of the Hapcan's specific frame type
+            it displays its short description on the right side. For example, frame type 0x301 is the node button module status message. It is good practise to stick with Hapcan frames type system, so any hapcan monitor can also recognize 
+            the frames. <br>
+            You can disable filter by putting valu of 0x000 as a filter.
+            <br>
+            There is also a preset dropdown menu, so You can prepare hapcan's frames quickly. The data bytes will be named accordingly to the Hapcan modules frames described in the manual, and the node
+            will emit message with this properties existing in the payload.
+            <li><b>D[0-7] fields</b> represents 8 frame data bytes. You can name each byte just for clarity, but this names will be also emitted with message payload.</li>
+        </ul>
+        </p>    
     <h3>Output</h3>
     <dl class="message-properties">
         <dt>payload <span class="property-type">object</span></dt>
-        <dd>Hapcan message object with relay module's state data.</dd>
+        <dd>Hapcan message object with frame data.</dd>
     </dl>
     
+
     <h3>Details</h3>
     <p>The <code>msg.payload</code> contains:
     </p>
@@ -748,7 +777,7 @@
         <dd>15 bytes buffer containing raw Hapcan's CAN frame.</dd>
 
         <dt>frameType <span class="property-type">number</span></dt>
-        <dd>Hapcan frame type number</dd>
+        <dd>Hapcan frame type number (decimal)</dd>
 
         <dt>isAnswer <span class="property-type">bool</span></dt>
         <dd><i>True</i> if message is an answer for request.</dd>
@@ -758,19 +787,19 @@
 
         <dt>group <span class="property-type">number</span></dt>
         <dd>Sender module group number.</dd>
-        
-        <dt>frame filter <span class="property-type">empty | number</span></dt>
-        <dd>If filter is specified (3-digit frame type) the node will emit message only if received hapcan message match filter value. 
-            Leave empty to emit all the received messages.
-        </dd>
 
-        <dt>D[0-7] name <span class="property-type">empty | string</span></dt>
-        <dd>You can specify a message property name for each 8 data bytes of the received hapcan message. If You provide name for data byte the emitted message
-            will contain this property with value of the corresponding data byte.
-        </dd>        
-
+        <dt><i>D[0-7] property_name</i> <span class="property-type">number</span></dt> 
+        <dd>Each data byte with property name provided will be attached to the payload message. Note that values are in 0-255 range and it is a raw representation of the data.
     </dl>
     <p>
-        This node receives all messages of the selected module in group.
+        It is important that the properties emitted within message payload are just raw byte values. The node will not decode the value meaning, for example when You receive a 
+        real time status message <code>0x300</code> there will be correct names like hour, minute, seconds, but the data will be provided as is in BCD format. If You want the data
+        to be in correct values You have to compute it Yourself or just use dedicated RTC input node, which does the required translations on raw data bytes.
     </p>
+
+    <h3>References</h3>
+    <ul>
+        <li><a href="https://hapcan.com/">Hapcan modules</a></li>
+    </ul>    
+    
 </script>

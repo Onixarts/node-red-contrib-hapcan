@@ -173,7 +173,7 @@ module.exports = function (RED) {
         class HapcanMessage {
             constructor(frame) {
                 this.frame = frame;
-                this.frameType = Number((((frame[1]) * 256 + (frame[2] & 0xF0)) / 16).toString(16));
+                this.frameType = (frame[1] << 4) + (frame[2] >>> 4)
                 this.isAnswer = (frame[2] & 0x01) === 0 ? false : true;
                 this.node = frame[3];
                 this.group = frame[4];
@@ -189,7 +189,7 @@ module.exports = function (RED) {
 
             var eventArgs = { payload: hapcanMsg, topic: 'Hapcan Message' };
             node.eventEmitter.emit('messageReceived', eventArgs);
-            node.eventEmitter.emit('messageReceived_'+hapcanMsg.frameType, eventArgs);
+            node.eventEmitter.emit('messageReceived_'+ ('000' + hapcanMsg.frameType.toString(16).substr(-3).toUpperCase() ), eventArgs);
         }
 
         this.send = function(msg){
