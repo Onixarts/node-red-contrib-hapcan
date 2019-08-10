@@ -11,6 +11,12 @@ Nodes are using the [Hapcan ethernet module](http://hapcan.com/devices/universal
 - Hapcan based infrastructure
 - Hapcan ethernet module
 
+# New in version 1.5
+
+**Custom input** and **custom output** nodes, which can handle each Hapcan message. Now it is easy to use devices which hasn't its own control nodes, including Your own custom messages and devices (based on [Hapcanuino](https://github.com/Onixarts/Hapcanuino) project for example).
+
+There is a one, possibly breaking change, with `hapcanFrame` property emitted with each the input nodes. It was emitted as an integer hex number, but in fact, it wasn't hex. For example, a value of `302` which look like a Hapcan hex frame number it's in fact falue of `770` in decimal system. So if you wan't compare new `hapcanFrame` with string `'303'` You have to make some computations first. This change/fix is due to problem with other frames hex representation such as `0x10A` `0x10B` etc as an integer number using just digits.
+
 # Instalation
 ## Using NODE-RED installer
 
@@ -47,6 +53,8 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 - **State output** helps request Hapcan modules status informations
 - **Temp input** receives temperature messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-4-x-x.htm)
 - **Thermostat input** receives thermostat messages from [button modules](https://hapcan.com/devices/universal/univ_3/univ_3-1-3-x/index.htm)
+- **Custom input** receives any Hapcan's frame data from any module (custom modules included).
+- **Custom output** sends any configured (static) and dynamic (payload) message to Hapcan's bus.
 
 # Usage
 
@@ -65,3 +73,11 @@ You can also control Hapcan module by passing more detailed payload with **topic
 
 You can control the nodes by payload in many ways. For example, let's consider relay output. You can pass string value with "ON", "Off", "Toggle" text (case insensitive) to switch channel selected in node configuration. You can also pass number 0,1,2 (Hapcan module compatible values). You can also pass bool value of true or false, to enable or disable relay - in this case the possible actions are limited to ON and OFF.
 Finally, you can pass object (JSON) where You have full control over node - You can override default settings in configuration then.
+
+Example of RGB output node configuration - it contains each control frame fields for simple use.
+
+![RGB output node](img/rgb-output-node.png)
+
+Thera are also Custom input and output nodes which allows You to send and receive any messages to and from the bus. You can name each data byte as You want. It also has a preset menu, with common Hapcan's messages frames, ready to be used.
+
+![Custom nodes](img/custom-node-configuration.png)
