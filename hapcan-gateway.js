@@ -189,7 +189,7 @@ module.exports = function (RED) {
 
             var eventArgs = { payload: hapcanMsg, topic: 'Hapcan Message' };
             node.eventEmitter.emit('messageReceived', eventArgs);
-            node.eventEmitter.emit('messageReceived_'+ ('000' + hapcanMsg.frameType.toString(16).substr(-3).toUpperCase() ), eventArgs);
+            node.eventEmitter.emit('messageReceived_'+ ('000' + hapcanMsg.frameType.toString(16)).substr(-3).toUpperCase(), eventArgs);
         }
 
         this.send = function(msg){
