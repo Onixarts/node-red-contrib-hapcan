@@ -55,8 +55,6 @@ module.exports = function (RED) {
             node.eventEmitter.emit('statusChanged', status);
         };
 
-        node.setConnectionStatus(ConnectionStatus.notConnected);
-
         this.connect = function (){
 
             if(node.connectionStatus.value === ConnectionStatus.notConnected.value)
@@ -99,8 +97,6 @@ module.exports = function (RED) {
 
         };
 
-        node.connect();
-
         this.reconnect = function() {
             setTimeout(()=>{
                 this.client.removeAllListeners();
@@ -115,6 +111,10 @@ module.exports = function (RED) {
                 messageString+= ' ' + ("0" + hapcanMessage[i].toString(16).toUpperCase()).slice (-2);
             return messageString;
         }
+
+        this.on('close', function() {
+            node.setConnectionStatus(ConnectionStatus.notConnected);
+        });
 
         class HapcanMessage {
             constructor(frame) {
@@ -170,6 +170,9 @@ module.exports = function (RED) {
                 }
             }
         };
+
+        node.setConnectionStatus(ConnectionStatus.notConnected);
+        node.connect();
     }
     RED.nodes.registerType("hapcan-gateway", HapcanGatewayNode);
 }
