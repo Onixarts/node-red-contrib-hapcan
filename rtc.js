@@ -9,24 +9,11 @@
         node.name = config.name;
         node.defaultAction = config.defaultAction;
 
-        node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + ("00" + node.channel).slice (-3)+'_';
+        this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
-
-        if(node.gateway)
-        {
-            node.gateway.register(node);
-        }
-        else
-        {
-            node.error('Invalid configuration. Gateway is required.'); 
-        }
-
-        this.on('close', function(done) {
-            if (node.gateway) {
-                node.gateway.deregister(node,done);
-            }
-        });
+        node.gateway.eventEmitter.on('statusChanged', function(data){
+            node.status(data)
+        })
 
         this.number2bcd = (value) => ( ((Math.floor(value/10)& 0x0F)<<4) + ((value%10) & 0x0F));
         
@@ -99,24 +86,11 @@
         node.node = config.node;
         node.name = config.name;
         
-        node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + '_';
+        this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
-
-        if(node.gateway)
-        {
-            node.gateway.register(node);
-        }
-        else
-        {
-            node.error('Invalid configuration. Gateway is required.'); 
-        }
-
-        this.on('close', function(done) {
-            if (node.gateway) {
-                node.gateway.deregister(node,done);
-            }
-        });
+        node.gateway.eventEmitter.on('statusChanged', function(data){
+            node.status(data)
+        })
 
         this.bcd2number = function(value)
         {
