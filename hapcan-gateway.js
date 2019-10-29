@@ -31,9 +31,7 @@ module.exports = function (RED) {
 
         this.connectionStatus = ConnectionStatus.notConnected;
         
-        // register hapcan nodes that uses the gateway
         var node = this;
-        this.clientNodes = {};
 
         node.setConnectionStatus = function(connectionStatus)
         {
@@ -54,64 +52,10 @@ module.exports = function (RED) {
                     break;
             }
             node.status(status);
-            for(var hapcanId in node.clientNodes)
-            {
-                node.clientNodes[hapcanId].status(status);
-            }
+            node.eventEmitter.emit('statusChanged', status);
         };
 
         node.setConnectionStatus(ConnectionStatus.notConnected);
-
-        this.register = function(hapcanNode) {
-            
-            var existingNode = false;
-            var index = 1;
-            var instanceSeparator = hapcanNode.hapcanId.indexOf('_');
-            var hapcanRootId = "";
-            var hapcanId = "";
-            if(instanceSeparator > -1)
-            {
-                hapcanRootId = hapcanNode.hapcanId.substring(0, instanceSeparator);
-            }
-            else
-            {
-                node.error("Missing '_' in HapcanId. Node not registered.");
-                return;
-            }
-            
-            do
-            {
-                hapcanId = hapcanRootId+'_'+index;
-                existingNode = node.clientNodes.hasOwnProperty(hapcanId);
-                index++;
-            } while(existingNode);
-
-            hapcanNode.hapcanId = hapcanId;
-            node.log("client registering: " + hapcanNode.hapcanId);
-            node.clientNodes[hapcanId] = hapcanNode;
-            if (Object.keys(node.clientNodes).length === 1) {
-                node.connect();
-            }
-        };
-
-        this.deregister = function (hapcanNode, done) {
-            node.log("client unregister: "+ hapcanNode.hapcanId);
-            delete node.clientNodes[hapcanNode.hapcanId];
-            if (node.connectionStatus.value === ConnectionStatus.closing.value) {
-                return done();
-            }
-            // if (Object.keys(node.clientNodes).length === 0) {
-            //     if (node.client && node.client.connected) {
-            //         return node.client.end(done);
-            //     } else {
-            //         node.client.end();
-            //         return done();
-            //     }
-            // }
-            done();
-        };
-
-
 
         this.connect = function (){
 
@@ -154,6 +98,8 @@ module.exports = function (RED) {
             }
 
         };
+
+        node.connect();
 
         this.reconnect = function() {
             setTimeout(()=>{
