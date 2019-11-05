@@ -126,6 +126,7 @@ module.exports = function (RED) {
             }
         }
 
+        
         this.messageReceived = function(frame)
         {
             if(node.debugmode)
@@ -173,6 +174,93 @@ module.exports = function (RED) {
 
         node.setConnectionStatus(ConnectionStatus.notConnected);
         node.connect();
+
+        this.devices = {}
+        this.requestIdGroup = 0
+        this.foundDevicesInGroup = 0
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function waitForNewDevicesAsync(){
+            let previousFoundDevicesCount = node.foundDevicesInGroup
+            console.log('na starcie : ' + previousFoundDevicesCount )
+            try{
+                for (let i = 0; i < 10; i++) {
+                    await sleep(100);
+                    console.log('waiting: '+ node.foundDevicesInGroup)
+                    let currentDevicesFound = node.foundDevicesInGroup
+                    if(currentDevicesFound === previousFoundDevicesCount)
+                    {
+                        console.log('no more devices response')
+                        return
+                    }
+                    previousFoundDevicesCount = currentDevicesFound
+                }
+            }
+            catch(e)
+            {
+                console.log(e)
+            }
+
+        }
+
+        RED.httpAdmin.get("/hapcan-devices-discover", RED.auth.needsPermission('serial.read'), async function(req,res) {
+            console.log('grupa: '+ req.query.group)
+            
+            if(Number(req.query.group) === 1)
+            {
+                node.devices = {}
+            }
+
+            node.foundDevicesInGroup = 0
+
+            // request Id from group
+            var msg = Buffer.from([0xAA, 0x10,0x30, node.node,node.group, 0xFF,0xFF,0x00, req.query.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            node.requestIdGroup = Number(req.query.group)
+            node.send({payload: msg})
+            
+            try{
+                await waitForNewDevicesAsync()
+
+            }
+            catch(e)
+            {console.log(e)}
+
+            res.json(JSON.stringify(node.devices));
+            
+        });
+
+        class HapcanDevice {
+            constructor() {
+                this.node = 0;
+                this.group = 0;
+                this.serialNumber = 0;
+            }
+        }
+
+        //hardware type response
+        node.eventEmitter.on('messageReceived_103', function(data){
+            
+            var hapcanMessage = data.payload
+            if(node.requestIdGroup !== Number(hapcanMessage.group))
+                return;
+
+            var device = null
+            var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
+            if( !node.devices.hasOwnProperty[deviceId] )
+            {
+                node.devices[deviceId] = new HapcanDevice()
+                node.foundDevicesInGroup += 1
+            }
+                
+            device = node.devices[deviceId]
+            device.node = hapcanMessage.node
+            device.group = hapcanMessage.group
+            device.serialNumber = '0x' + ('00000000' + ((hapcanMessage.frame[9]<<24)+(hapcanMessage.frame[10]<<16)+(hapcanMessage.frame[11]<<8)+hapcanMessage.frame[12]).toString(16)).substr(-8).toUpperCase()
+
+        })
     }
     RED.nodes.registerType("hapcan-gateway", HapcanGatewayNode);
 }

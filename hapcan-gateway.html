@@ -13,14 +13,68 @@
         label: function() {
             return this.host+':'+this.port + ' ('+this.node+','+this.group+')';
         },
+        discoveringTimer: null,
+        cleanUp: null,
+        //discoveringGroup: 1,
         oneditprepare: function(){
             if(this.debugmode)
                 $("#node-input-debugmode").prop('checked', true);
             $('#node-config-input-reconnectPeriod').val(this.reconnectPeriod || 1000);
+
+            cleanUp = function() {
+                //if(discoveringTimer !== null)
+                  //  clearInterval(discoveringTimer)
+                $('#discover-devices').off('click')
+            }
+
+            var discovering = false
+            //var discoveringTimer = null
+            $('#discover-devices').click(async function(){
+                
+                discovering = !discovering
+                if(discovering)
+                {
+                    $(this).html('<i class="fa fa-refresh fa-spin"></i> Discovering devices... (click to cancel)')
+                    
+                        discoveringGroup = 1
+                        //discoveringTimer = setInterval(function(){
+                        for(let i = 1; i < 10; i++){
+                            await $.getJSON(`hapcan-devices-discover?group=${i}`,function(data) {
+                            //discoveringGroup++;
+                            //if(discoveringGroup === 10)
+                            console.log(data)
+                            })
+                        }
+                        $('#discover-devices').trigger('click')
+
+                    //     $.getJSON(`hapcan-devices-discover?group=${discoveringGroup}`,function(data) {
+                    //         discoveringGroup++;
+                    //         if(discoveringGroup === 10)
+                    //             $('#discover-devices').trigger('click')
+                    //         console.log(data)
+                    //     });
+                    // }, 2000)
+                }
+                else
+                {
+                    $(this).html('<i class="fa fa-refresh"></i> Discover devices')
+                    //if(discoveringTimer !== null)
+                      //  clearInterval(discoveringTimer)
+                }
+                
+            })
         },
         oneditsave: function(){
             this.debugmode = $("#node-input-debugmode").is(":checked") ? true : false;
+            cleanUp()
+        },
+        oneditcancel: function(){
+            cleanUp()
+        },
+        oneditdelete: function(){
+            cleanUp()
         }
+
         });
 </script>
 
@@ -52,6 +106,11 @@
         <input style="width: 5%;" id="node-input-debugmode" type="checkbox" ><br>
         <span style="opacity: 0.7; font-size: 12px;">Enable Hapcan message loging into console.</span>
     </div>
+
+    <div class="form-row">
+        <button id="discover-devices"><i class="fa fa-refresh"></i> Discover devices</button>
+    </div>
+
 </script>
 
 <script type="text/x-red" data-help-name="hapcan-gateway">
