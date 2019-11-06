@@ -178,6 +178,7 @@ module.exports = function (RED) {
         this.devices = {}
         this.requestIdGroup = 0
         this.foundDevicesInGroup = 0
+        this.firmwareResponseInGroup = 0
 
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
@@ -185,16 +186,14 @@ module.exports = function (RED) {
 
         async function waitForNewDevicesAsync(){
             let previousFoundDevicesCount = node.foundDevicesInGroup
-            console.log('na starcie : ' + previousFoundDevicesCount )
             try{
+                
                 for (let i = 0; i < 10; i++) {
                     await sleep(100);
-                    console.log('waiting: '+ node.foundDevicesInGroup)
                     let currentDevicesFound = node.foundDevicesInGroup
                     if(currentDevicesFound === previousFoundDevicesCount)
                     {
-                        console.log('no more devices response')
-                        return
+                        break
                     }
                     previousFoundDevicesCount = currentDevicesFound
                 }
@@ -203,11 +202,29 @@ module.exports = function (RED) {
             {
                 console.log(e)
             }
+        }
 
+        async function waitForFirmwareResponseAsync(){
+            let previousFirmwareResponsesInGroup = node.firmwareResponsesInGroup
+            try{
+                
+                for (let i = 0; i < 10; i++) {
+                    await sleep(100);
+                    let currentResponsesCount = node.firmwareResponsesInGroup
+                    if(currentResponsesCount === previousFirmwareResponsesInGroup || currentResponsesCount === node.foundDevicesInGroup )
+                    {
+                        break
+                    }
+                    previousFirmwareResponsesInGroup = currentResponsesCount
+                }
+            }
+            catch(e)
+            {
+                console.log(e)
+            }
         }
 
         RED.httpAdmin.get("/hapcan-devices-discover", RED.auth.needsPermission('serial.read'), async function(req,res) {
-            console.log('grupa: '+ req.query.group)
             
             if(Number(req.query.group) === 1)
             {
@@ -215,15 +232,25 @@ module.exports = function (RED) {
             }
 
             node.foundDevicesInGroup = 0
+            node.firmwareResponsesInGroup = 0
 
-            // request Id from group
-            var msg = Buffer.from([0xAA, 0x10,0x30, node.node,node.group, 0xFF,0xFF,0x00, req.query.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-            node.requestIdGroup = Number(req.query.group)
-            node.send({payload: msg})
-            
             try{
+                node.requestIdGroup = Number(req.query.group)
+
+                // request Id from group
+                var msg = Buffer.from([0xAA, 0x10, 0x30, node.node,node.group, 0xFF,0xFF,0x00, req.query.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                node.send({payload: msg})
+                
                 await waitForNewDevicesAsync()
 
+                if(node.foundDevicesInGroup > 0 )
+                {
+                    // request firmware type from group
+                    var msg = Buffer.from([0xAA, 0x10, 0x50, node.node,node.group, 0xFF,0xFF,0x00, req.query.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                    node.send({payload: msg})
+
+                    await waitForFirmwareResponseAsync()
+                }
             }
             catch(e)
             {console.log(e)}
@@ -237,6 +264,13 @@ module.exports = function (RED) {
                 this.node = 0;
                 this.group = 0;
                 this.serialNumber = 0;
+                this.hardwareType = 0
+                this.hardwareTypeString = 'unknown'
+                this.hardwareVersion = 0
+                this.applicationType = 0
+                this.applicationTypeString = 'unknown'
+                this.applicationVersion = 0
+                this.firmwareVersion = 0
             }
         }
 
@@ -249,7 +283,7 @@ module.exports = function (RED) {
 
             var device = null
             var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
-            if( !node.devices.hasOwnProperty[deviceId] )
+            if( !node.devices.hasOwnProperty(deviceId) )
             {
                 node.devices[deviceId] = new HapcanDevice()
                 node.foundDevicesInGroup += 1
@@ -259,8 +293,54 @@ module.exports = function (RED) {
             device.node = hapcanMessage.node
             device.group = hapcanMessage.group
             device.serialNumber = '0x' + ('00000000' + ((hapcanMessage.frame[9]<<24)+(hapcanMessage.frame[10]<<16)+(hapcanMessage.frame[11]<<8)+hapcanMessage.frame[12]).toString(16)).substr(-8).toUpperCase()
+            device.hardwareType = (hapcanMessage.frame[5]<<8)+hapcanMessage.frame[6]
+            switch(device.hardwareType)
+            {
+                case 0x1000: device.hardwareTypeString = 'UNIV 1'; break
+                case 0x3000: device.hardwareTypeString = 'UNIV 3'; break
+                case 0x4F41: device.hardwareTypeString = 'Hapcanuino'; break
+                default:
+                    device.hardwareTypeString = 'unknown'
+            }
 
         })
+
+        //firmware response
+        node.eventEmitter.on('messageReceived_105', function(data){
+                    
+            var hapcanMessage = data.payload
+            if(node.requestIdGroup !== Number(hapcanMessage.group))
+                return;
+
+            var device = null
+            var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
+            if( !node.devices.hasOwnProperty(deviceId) )
+            {
+                return;
+            }
+
+            node.firmwareResponsesInGroup += 1
+            device = node.devices[deviceId]
+            device.hardwareVersion = hapcanMessage.frame[7]
+            device.applicationType = hapcanMessage.frame[8]
+            switch(device.applicationType)
+            {
+                case 0x01: device.applicationTypeString = 'Button'; break
+                case 0x02: device.applicationTypeString = 'Relay'; break
+                case 0x03: device.applicationTypeString = 'IR Receiver'; break
+                case 0x04: device.applicationTypeString = 'Temperature sensor'; break
+                case 0x05: device.applicationTypeString = 'Infrared transmitter'; break
+                case 0x06: device.applicationTypeString = 'Dimmer'; break
+                case 0x07: device.applicationTypeString = 'Blind controller'; break
+                case 0x08: device.applicationTypeString = 'Led controller'; break
+                case 0x09: device.applicationTypeString = 'Open collector'; break
+                
+                default:
+                    device.hardwareTypeString = 'Custom device'
+            }
+            device.applicationVersion = hapcanMessage.frame[9]
+            device.firmwareVersion = hapcanMessage.frame[10]
+        })        
     }
     RED.nodes.registerType("hapcan-gateway", HapcanGatewayNode);
 }

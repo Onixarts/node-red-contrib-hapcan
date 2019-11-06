@@ -8,15 +8,19 @@
             group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             debugmode: {value: false},
-            reconnectPeriod: {value: 1000, validate: function(val){ return !val || val > 0; } }
+            reconnectPeriod: {value: 1000, validate: function(val){ return !val || val > 0; } },
+            devices: {value: {}}
         },
         label: function() {
             return this.host+':'+this.port + ' ('+this.node+','+this.group+')';
         },
         discoveringTimer: null,
         cleanUp: null,
+        showDevices: null,
         //discoveringGroup: 1,
         oneditprepare: function(){
+            let config = this
+
             if(this.debugmode)
                 $("#node-input-debugmode").prop('checked', true);
             $('#node-config-input-reconnectPeriod').val(this.reconnectPeriod || 1000);
@@ -27,6 +31,29 @@
                 $('#discover-devices').off('click')
             }
 
+            showDevices = function(){
+                
+                //console.log(config.devices)
+                for(let [deviceId, device] of Object.entries(config.devices)){
+//                    console.log(deviceId)
+                    
+                    var tableRow = $(`#hapcan-devices table #hapcan-device-${deviceId}`)
+                    if(tableRow.length){
+
+                    }
+                    else{
+                        var newRow = `<tr id="hapcan-device-${deviceId}">
+                                <td>(${device.node}, ${device.group})</td>
+                                <td>${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion}</td>
+                                <td>${device.description}</td>
+                                <td>${device.serialNumber}</td>
+                                <td>${device.hardwareTypeString}</td>`
+
+                        $("#hapcan-devices table tr:last").after(newRow)
+                    }
+                }
+            }
+
             var discovering = false
             //var discoveringTimer = null
             $('#discover-devices').click(async function(){
@@ -34,6 +61,9 @@
                 discovering = !discovering
                 if(discovering)
                 {
+                    config.devices = {}
+                    $('#hapcan-devices table tr:not(:first-child)').remove()
+
                     $(this).html('<i class="fa fa-refresh fa-spin"></i> Discovering devices... (click to cancel)')
                     
                         discoveringGroup = 1
@@ -42,7 +72,8 @@
                             await $.getJSON(`hapcan-devices-discover?group=${i}`,function(data) {
                             //discoveringGroup++;
                             //if(discoveringGroup === 10)
-                            console.log(data)
+                                config.devices = JSON.parse(data)
+                                showDevices()
                             })
                         }
                         $('#discover-devices').trigger('click')
@@ -109,6 +140,18 @@
 
     <div class="form-row">
         <button id="discover-devices"><i class="fa fa-refresh"></i> Discover devices</button>
+    </div>
+
+    <div class="form-row" id="hapcan-devices">
+        <table>
+            <tr>
+                <th>(Node, Group)</th>
+                <th>Firmware</th>
+                <th>Description</th>
+                <th>Serial Number</th>
+                <th>Hardware</th>
+            </tr>
+        </table>
     </div>
 
 </script>
