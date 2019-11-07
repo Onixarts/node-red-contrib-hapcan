@@ -188,13 +188,11 @@ module.exports = function (RED) {
             let previousFoundDevicesCount = node.foundDevicesInGroup
             try{
                 
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 30; i++) {
                     await sleep(100);
                     let currentDevicesFound = node.foundDevicesInGroup
                     if(currentDevicesFound === previousFoundDevicesCount)
-                    {
                         break
-                    }
                     previousFoundDevicesCount = currentDevicesFound
                 }
             }
@@ -208,13 +206,11 @@ module.exports = function (RED) {
             let previousFirmwareResponsesInGroup = node.firmwareResponsesInGroup
             try{
                 
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 30; i++) {
                     await sleep(100);
                     let currentResponsesCount = node.firmwareResponsesInGroup
                     if(currentResponsesCount === previousFirmwareResponsesInGroup || currentResponsesCount === node.foundDevicesInGroup )
-                    {
                         break
-                    }
                     previousFirmwareResponsesInGroup = currentResponsesCount
                 }
             }
@@ -223,6 +219,25 @@ module.exports = function (RED) {
                 console.log(e)
             }
         }
+
+        async function waitForDescriptionResponseAsync(){
+            let previousDescriptionResponsesInGroup = node.descriptionResponsesInGroup
+            try{
+                
+                for (let i = 0; i < 30; i++) {
+                    await sleep(200);
+                    let currentResponsesCount = node.descriptionResponsesInGroup
+                    if(currentResponsesCount === previousDescriptionResponsesInGroup || currentResponsesCount === node.foundDevicesInGroup )
+                        break
+                    previousDescriptionResponsesInGroup = currentResponsesCount
+                }
+            }
+            catch(e)
+            {
+                console.log(e)
+            }
+        }
+
 
         RED.httpAdmin.get("/hapcan-devices-discover", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
@@ -233,6 +248,7 @@ module.exports = function (RED) {
 
             node.foundDevicesInGroup = 0
             node.firmwareResponsesInGroup = 0
+            node.descriptionResponsesInGroup = 0
 
             try{
                 node.requestIdGroup = Number(req.query.group)
@@ -250,6 +266,12 @@ module.exports = function (RED) {
                     node.send({payload: msg})
 
                     await waitForFirmwareResponseAsync()
+
+                    // request description from group
+                    var msg = Buffer.from([0xAA, 0x10, 0xD0, node.node,node.group, 0xFF,0xFF,0x00, req.query.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                    node.send({payload: msg})
+
+                    await waitForDescriptionResponseAsync()
                 }
             }
             catch(e)
@@ -263,12 +285,15 @@ module.exports = function (RED) {
             constructor() {
                 this.node = 0;
                 this.group = 0;
+                this.description = ''
+                this.descriptionFirstPart = true
                 this.serialNumber = 0;
                 this.hardwareType = 0
                 this.hardwareTypeString = 'unknown'
                 this.hardwareVersion = 0
                 this.applicationType = 0
                 this.applicationTypeString = 'unknown'
+                this.applicationTypeIcon = 'fa-microchip'
                 this.applicationVersion = 0
                 this.firmwareVersion = 0
             }
@@ -325,22 +350,52 @@ module.exports = function (RED) {
             device.applicationType = hapcanMessage.frame[8]
             switch(device.applicationType)
             {
-                case 0x01: device.applicationTypeString = 'Button'; break
-                case 0x02: device.applicationTypeString = 'Relay'; break
-                case 0x03: device.applicationTypeString = 'IR Receiver'; break
-                case 0x04: device.applicationTypeString = 'Temperature sensor'; break
-                case 0x05: device.applicationTypeString = 'Infrared transmitter'; break
-                case 0x06: device.applicationTypeString = 'Dimmer'; break
-                case 0x07: device.applicationTypeString = 'Blind controller'; break
-                case 0x08: device.applicationTypeString = 'Led controller'; break
-                case 0x09: device.applicationTypeString = 'Open collector'; break
+                case 0x01: device.applicationTypeString = 'Button'; device.applicationTypeIcon = 'fa-hand-o-down'; break
+                case 0x02: device.applicationTypeString = 'Relay'; device.applicationTypeIcon = 'fa-power-off'; break
+                case 0x03: device.applicationTypeString = 'IR Receiver'; device.applicationTypeIcon = 'fa-feed'; break
+                case 0x04: device.applicationTypeString = 'Temperature sensor'; device.applicationTypeIcon = 'fa-thermometer-half'; break
+                case 0x05: device.applicationTypeString = 'Infrared transmitter'; device.applicationTypeIcon = 'fa-feed'; break
+                case 0x06: device.applicationTypeString = 'Dimmer'; device.applicationTypeIcon = 'fa-lightbulb-o'; break
+                case 0x07: device.applicationTypeString = 'Blind controller'; device.applicationTypeIcon = 'fa-bars'; break
+                case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; break
+                case 0x09: device.applicationTypeString = 'Open collector'; device.applicationTypeIcon = 'fa-external-link'; break
                 
                 default:
                     device.hardwareTypeString = 'Custom device'
+                    device.applicationTypeIcon = 'fa-microchip'
+
             }
             device.applicationVersion = hapcanMessage.frame[9]
             device.firmwareVersion = hapcanMessage.frame[10]
-        })        
+        })   
+        
+        //description response
+        node.eventEmitter.on('messageReceived_10D', function(data){
+    
+            var hapcanMessage = data.payload
+            if(node.requestIdGroup !== Number(hapcanMessage.group))
+                return;
+
+            var device = null
+            var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
+            if( !node.devices.hasOwnProperty(deviceId) )
+            {
+                return;
+            }
+
+            device = node.devices[deviceId]
+
+            if(device.descriptionFirstPart)
+                device.description = ''
+            else
+            {
+                node.descriptionResponsesInGroup += 1
+            }
+            let normalizedDescription = hapcanMessage.frame.slice(5,13)
+            normalizedDescription.forEach((v)=>{v = v===0?32:v})
+            device.description += normalizedDescription.toString()
+            device.descriptionFirstPart = !device.descriptionFirstPart
+        })
     }
     RED.nodes.registerType("hapcan-gateway", HapcanGatewayNode);
 }

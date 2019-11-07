@@ -17,7 +17,6 @@
         discoveringTimer: null,
         cleanUp: null,
         showDevices: null,
-        //discoveringGroup: 1,
         oneditprepare: function(){
             let config = this
 
@@ -26,16 +25,11 @@
             $('#node-config-input-reconnectPeriod').val(this.reconnectPeriod || 1000);
 
             cleanUp = function() {
-                //if(discoveringTimer !== null)
-                  //  clearInterval(discoveringTimer)
                 $('#discover-devices').off('click')
             }
 
             showDevices = function(){
-                
-                //console.log(config.devices)
                 for(let [deviceId, device] of Object.entries(config.devices)){
-//                    console.log(deviceId)
                     
                     var tableRow = $(`#hapcan-devices table #hapcan-device-${deviceId}`)
                     if(tableRow.length){
@@ -43,57 +37,46 @@
                     }
                     else{
                         var newRow = `<tr id="hapcan-device-${deviceId}">
-                                <td>(${device.node}, ${device.group})</td>
-                                <td>${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion}</td>
-                                <td>${device.description}</td>
-                                <td>${device.serialNumber}</td>
+                                <td style="text-align: right">(${device.node}, ${device.group})</td>
+                                <td><i class="fa ${device.applicationTypeIcon}"></i> ${device.description}</td>
+                                <td>${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion} ${device.applicationTypeString}</td>
                                 <td>${device.hardwareTypeString}</td>`
 
                         $("#hapcan-devices table tr:last").after(newRow)
                     }
                 }
             }
-
+            
             var discovering = false
-            //var discoveringTimer = null
             $('#discover-devices').click(async function(){
-                
                 discovering = !discovering
                 if(discovering)
                 {
                     config.devices = {}
                     $('#hapcan-devices table tr:not(:first-child)').remove()
 
-                    $(this).html('<i class="fa fa-refresh fa-spin"></i> Discovering devices... (click to cancel)')
+                    $(this).html('<i class="fa fa-refresh fa-spin"></i> Discovering devices... (click to stop)')
                     
                         discoveringGroup = 1
-                        //discoveringTimer = setInterval(function(){
-                        for(let i = 1; i < 10; i++){
+                        for(let i = 1; i < 255; i++){
+                            $('#hapcan-discover-progressbar div').css('width', parseInt(((i+1)/255)*100)+'%' )
                             await $.getJSON(`hapcan-devices-discover?group=${i}`,function(data) {
-                            //discoveringGroup++;
-                            //if(discoveringGroup === 10)
                                 config.devices = JSON.parse(data)
                                 showDevices()
                             })
+                            if(!discovering)
+                                return                            
                         }
                         $('#discover-devices').trigger('click')
-
-                    //     $.getJSON(`hapcan-devices-discover?group=${discoveringGroup}`,function(data) {
-                    //         discoveringGroup++;
-                    //         if(discoveringGroup === 10)
-                    //             $('#discover-devices').trigger('click')
-                    //         console.log(data)
-                    //     });
-                    // }, 2000)
                 }
                 else
                 {
                     $(this).html('<i class="fa fa-refresh"></i> Discover devices')
-                    //if(discoveringTimer !== null)
-                      //  clearInterval(discoveringTimer)
                 }
                 
             })
+
+            showDevices()
         },
         oneditsave: function(){
             this.debugmode = $("#node-input-debugmode").is(":checked") ? true : false;
@@ -138,17 +121,46 @@
         <span style="opacity: 0.7; font-size: 12px;">Enable Hapcan message loging into console.</span>
     </div>
 
+    <style>
+            #hapcan-devices table {
+                width: 98%;
+                font-size: 12px;
+                text-align: left;
+            }
+            #hapcan-devices table td{
+                padding-right: 16px;
+            }
+            #hapcan-devices table tr:hover td{
+                background-color: #eee;
+            }
+    
+            #hapcan-discover-progressbar {
+                height: 5px;
+                background-color: #eee;
+            }
+
+            #hapcan-discover-progressbar div {
+                background-color: rgb(85, 170, 136);
+                height: 100%;
+                width: 0%;
+                transition: width 0.3s;
+            }
+
+        </style>
+
     <div class="form-row">
         <button id="discover-devices"><i class="fa fa-refresh"></i> Discover devices</button>
     </div>
+    <div class="form-row" id="hapcan-discover-progressbar">
+        <div></div>
+    </div>    
 
     <div class="form-row" id="hapcan-devices">
         <table>
             <tr>
-                <th>(Node, Group)</th>
-                <th>Firmware</th>
+                <th style="width: 20%">(Node, Group)</th>
                 <th>Description</th>
-                <th>Serial Number</th>
+                <th>Firmware</th>
                 <th>Hardware</th>
             </tr>
         </table>
@@ -158,4 +170,23 @@
 
 <script type="text/x-red" data-help-name="hapcan-gateway">
     <p>Hapcan configuration and gateway node.</p>
+    
+    <h3>Overview</h3>
+    <p>This node is used by each functional node to communicate with Hapcan bus via Ethernet interface.</p>
+
+    <h3>Configuration</h3>
+    <p>Specify <b>host</b> and <b>port</b> of Hapcan ethernet interface.</p>
+    <p><b>Reconnect period</b> will be used when node lose connection. After this period of time the node will 
+        try to connect to the Ethernet module again.
+    </p>
+    <p><b>Debug mode</b> will displat each send and received Hapcan frame in the system console (when Node-red is running as a console application)</p>
+    <p><b>Discover devices</b> button will fire a device searching procedure (from group 1 to 255). The found devices will
+        be shown in the table view below. Each time the button is pressed, the device list is cleared and
+        populate with new search results. Devices list is stored in the configuration node and will be used
+        in other nodes to choose Hapcan device easily. You don't have to discover devices, but then You should
+        know node and group number of the device You want to use in Node-red.
+    </p>
+    <p>Any time You add, remove or change any module in Hapcan network, use Discover function to refresh 
+        the devices list.
+    </p>
 </script>
