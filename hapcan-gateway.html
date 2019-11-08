@@ -19,12 +19,15 @@
         showDevices: null,
         oneditprepare: function(){
             let config = this
+            var discovering = false
 
             if(this.debugmode)
                 $("#node-input-debugmode").prop('checked', true);
             $('#node-config-input-reconnectPeriod').val(this.reconnectPeriod || 1000);
-
+            
             cleanUp = function() {
+                if( discovering )
+                    $('#discover-devices').trigger('click')
                 $('#discover-devices').off('click')
             }
 
@@ -47,7 +50,6 @@
                 }
             }
             
-            var discovering = false
             $('#discover-devices').click(async function(){
                 discovering = !discovering
                 if(discovering)
