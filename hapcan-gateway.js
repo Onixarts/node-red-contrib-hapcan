@@ -28,6 +28,10 @@ module.exports = function (RED) {
         this.incommingMessageIndex = 0;
         this.eventEmitter = new events.EventEmitter();
         this.eventEmitter.setMaxListeners(50);
+        this.devices = config.devices;
+        if(this.devices === undefined)
+            this.devices = []
+
 
         this.connectionStatus = ConnectionStatus.notConnected;
         
@@ -175,7 +179,6 @@ module.exports = function (RED) {
         node.setConnectionStatus(ConnectionStatus.notConnected);
         node.connect();
 
-        this.devices = {}
         this.requestIdGroup = 0
         this.foundDevicesInGroup = 0
         this.firmwareResponseInGroup = 0
@@ -238,12 +241,16 @@ module.exports = function (RED) {
             }
         }
 
+        RED.httpAdmin.get("/hapcan-device-list", RED.auth.needsPermission('serial.read'), function(req,res) {
+            var deviceList = node.devices.filter((d) => d.applicationType === Number(req.query.applicationType))
+            res.json(JSON.stringify(deviceList));                        
+        });
 
         RED.httpAdmin.get("/hapcan-devices-discover", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
             if(Number(req.query.group) === 1)
             {
-                node.devices = {}
+                node.devices = []
             }
 
             node.foundDevicesInGroup = 0
@@ -282,7 +289,8 @@ module.exports = function (RED) {
         });
 
         class HapcanDevice {
-            constructor() {
+            constructor(id) {
+                this.id = id
                 this.node = 0;
                 this.group = 0;
                 this.description = ''
@@ -306,15 +314,15 @@ module.exports = function (RED) {
             if(node.requestIdGroup !== Number(hapcanMessage.group))
                 return;
 
-            var device = null
             var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
-            if( !node.devices.hasOwnProperty(deviceId) )
+            var device = node.devices.find( v => v.id === deviceId )
+            if( device === undefined )
             {
-                node.devices[deviceId] = new HapcanDevice()
+                device = new HapcanDevice(deviceId)
+                node.devices.push(device)
                 node.foundDevicesInGroup += 1
             }
                 
-            device = node.devices[deviceId]
             device.node = hapcanMessage.node
             device.group = hapcanMessage.group
             device.serialNumber = '0x' + ('00000000' + ((hapcanMessage.frame[9]<<24)+(hapcanMessage.frame[10]<<16)+(hapcanMessage.frame[11]<<8)+hapcanMessage.frame[12]).toString(16)).substr(-8).toUpperCase()
@@ -337,15 +345,12 @@ module.exports = function (RED) {
             if(node.requestIdGroup !== Number(hapcanMessage.group))
                 return;
 
-            var device = null
             var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
-            if( !node.devices.hasOwnProperty(deviceId) )
-            {
+            var device = node.devices.find( v => v.id === deviceId )
+            if( device === undefined )
                 return;
-            }
 
             node.firmwareResponsesInGroup += 1
-            device = node.devices[deviceId]
             device.hardwareVersion = hapcanMessage.frame[7]
             device.applicationType = hapcanMessage.frame[8]
             switch(device.applicationType)
@@ -376,14 +381,10 @@ module.exports = function (RED) {
             if(node.requestIdGroup !== Number(hapcanMessage.group))
                 return;
 
-            var device = null
             var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
-            if( !node.devices.hasOwnProperty(deviceId) )
-            {
+            var device = node.devices.find( v => v.id === deviceId )
+            if( device === undefined )
                 return;
-            }
-
-            device = node.devices[deviceId]
 
             if(device.descriptionFirstPart)
                 device.description = ''

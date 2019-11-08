@@ -9,7 +9,7 @@
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             debugmode: {value: false},
             reconnectPeriod: {value: 1000, validate: function(val){ return !val || val > 0; } },
-            devices: {value: {}}
+            devices: {value: []}
         },
         label: function() {
             return this.host+':'+this.port + ' ('+this.node+','+this.group+')';
@@ -32,14 +32,14 @@
             }
 
             showDevices = function(){
-                for(let [deviceId, device] of Object.entries(config.devices)){
+                config.devices.forEach(device => {
                     
-                    var tableRow = $(`#hapcan-devices table #hapcan-device-${deviceId}`)
+                    var tableRow = $(`#hapcan-devices table #hapcan-device-${device.id}`)
                     if(tableRow.length){
 
                     }
                     else{
-                        var newRow = `<tr id="hapcan-device-${deviceId}">
+                        var newRow = `<tr id="hapcan-device-${device.id}">
                                 <td style="text-align: right">(${device.node}, ${device.group})</td>
                                 <td><i class="fa ${device.applicationTypeIcon}"></i> ${device.description}</td>
                                 <td>${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion} ${device.applicationTypeString}</td>
@@ -47,14 +47,14 @@
 
                         $("#hapcan-devices table tr:last").after(newRow)
                     }
-                }
+                })
             }
             
             $('#discover-devices').click(async function(){
                 discovering = !discovering
                 if(discovering)
                 {
-                    config.devices = {}
+                    config.devices = []
                     $('#hapcan-devices table tr:not(:first-child)').remove()
 
                     $(this).html('<i class="fa fa-refresh fa-spin"></i> Discovering devices... (click to stop)')
