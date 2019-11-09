@@ -242,8 +242,14 @@ module.exports = function (RED) {
         }
 
         RED.httpAdmin.get("/hapcan-device-list", RED.auth.needsPermission('serial.read'), function(req,res) {
-            var deviceList = node.devices.filter((d) => d.applicationType === Number(req.query.applicationType))
-            res.json(JSON.stringify(deviceList));                        
+            
+            if(req.query.applicationType === undefined)
+                res.json(JSON.stringify(node.devices))
+            else
+            {
+                var deviceList = node.devices.filter((d) => d.applicationType === Number(req.query.applicationType))
+                res.json(JSON.stringify(deviceList))
+            }
         });
 
         RED.httpAdmin.get("/hapcan-devices-discover", RED.auth.needsPermission('serial.read'), async function(req,res) {

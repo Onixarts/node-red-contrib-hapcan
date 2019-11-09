@@ -16,10 +16,52 @@
             return (this.name || "th/stat input") + ' (' + this.node + ',' + this.group + ')';
         },
         labelStyle: function () { return this.name ? "node_label_italic" : ""; },
-        oneditprepare: function () {
+        oneditprepare: async function() {
 
+            let config = this
             var nodeOptions = '';
             var groupOptions = '';
+            var devicesOptions = null
+            const deviceListResponse = await fetch('hapcan-device-list?applicationType=1')
+
+            var devicesSelect = $("#node-input-devices")
+            var nodeSelect =  $("#node-input-node")
+            var groupSelect =  $("#node-input-group")
+
+            const deviceList = JSON.parse(await deviceListResponse.json())
+            var currentDevice = null
+            deviceList.forEach( (device) => {
+                var selected = '';
+                if(Number(config.node) === device.node && Number(config.group) === device.group)
+                {
+                    selected = 'selected="selected"'
+                    currentDevice = device
+                }
+                devicesOptions += `<option ${selected} value="${device.id}">${device.description} (${device.node},${device.group})</option>`
+            })
+            devicesOptions += `<option ${currentDevice === null ? 'selected="selected"' : ''} value="0">(set node, group manually)</option>`
+
+            devicesSelect.append(devicesOptions)
+
+            devicesSelect.on('change', function() {
+                
+                if(Number(this.value) === 0)
+                {
+                    nodeSelect.removeAttr('disabled')
+                    groupSelect.removeAttr('disabled')
+                }
+                currentDevice = deviceList.find(v=>v.id === this.value)
+                
+                if(currentDevice !== undefined) {
+                    nodeSelect.find('option').removeProp('selected').filter(`[value=${currentDevice.node}]`).prop('selected', true).trigger('change')
+                    groupSelect.find('option').removeProp('selected').filter(`[value=${currentDevice.group}]`).prop('selected', true).trigger('change')
+                    nodeSelect.attr('disabled', 'disabled')
+                    groupSelect.attr('disabled', 'disabled')
+                }
+            })
+
+            devicesSelect.trigger('change')
+
             for (var i = 1; i < 256; i++) {
                 var selectedNode = '';
                 if ((Number(this.node) === i)) {
@@ -34,8 +76,8 @@
                 groupOptions += '<option ' + selectedGroup + ' value="' + i + '">' + i + '</option>';
             }
 
-            $("#node-input-node").append(nodeOptions);
-            $("#node-input-group").append(groupOptions);
+            nodeSelect.append(nodeOptions);
+            groupSelect.append(groupOptions);
         }
     });
 
@@ -51,11 +93,15 @@
         <input type="text" id="node-input-gateway" placeholder="Gateway">
     </div>
     <div class="form-row">
-        <label for="node-input-node"><i class="fa fa-microchip"></i> Node</label>
+        <label for="node-input-devices"><i class="fa fa-microchip"></i> Device</label>
+        <select id="node-input-devices"></select>
+    </div>    
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-cube"></i> Node</label>
         <select id="node-input-node"></select>
     </div>
     <div class="form-row">
-        <label for="node-input-group"><i class="fa fa-th"></i> Group</label>
+        <label for="node-input-group"><i class="fa fa-cubes"></i> Group</label>
         <select id="node-input-group"></select>
     </div>
 </script>
