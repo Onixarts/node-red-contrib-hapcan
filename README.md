@@ -11,11 +11,12 @@ Nodes are using the [Hapcan ethernet module](http://hapcan.com/devices/universal
 - Hapcan based infrastructure
 - Hapcan ethernet module
 
-# New in version 1.5
+# New in version 2.0
 
-**Custom input** and **custom output** nodes, which can handle each Hapcan message. Now it is easy to use devices which hasn't its own control nodes, including Your own custom messages and devices (based on [Hapcanuino](https://github.com/Onixarts/Hapcanuino) project for example).
+Added new **Discover devices** function which finds Hapcan devices in the bus. Once devices are found they are stored in a configuration node, so the discover function should be used only when Hapcan network is somehow changed. Devices list is then used in nodes for quick device selection - no need to set node and group anymore! But You can if You want.
 
-There is a one, possibly breaking change, with `hapcanFrame` property emitted with each the input nodes. It was emitted as an integer hex number, but in fact, it wasn't hex. For example, a value of `302` which look like a Hapcan hex frame number it's in fact falue of `770` in decimal system. So if you wan't compare new `hapcanFrame` with string `'303'` You have to make some computations first. This change/fix is due to problem with other frames hex representation such as `0x10A` `0x10B` etc as an integer number using just digits.
+There is also new frames receiving algorithm implemented, which should be shorter frames proof. This frames emitted by Hapcan programmer when connecting to the bus cause invalid frame errors and broke whole receiving mechanizm.
+
 
 # Instalation
 ## Using NODE-RED installer
@@ -81,3 +82,7 @@ Example of RGB output node configuration - it contains each control frame fields
 Thera are also Custom input and output nodes which allows You to send and receive any messages to and from the bus. You can name each data byte as You want. It also has a preset menu, with common Hapcan's messages frames, ready to be used.
 
 ![Custom nodes](img/custom-node-configuration.png)
+
+**Discover devices** function allows You to search the Hapcan bus for devices present, and then select them easily in any node configuration instead remember necessity for node and group number for each device.
+
+![Discover devices](img/discover-devices.gif)
