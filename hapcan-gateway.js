@@ -81,20 +81,36 @@ module.exports = function (RED) {
                 });
                 
                 node.client.on('data', function(data){
-                    
+
                     for(var i = 0; i < data.length; i++)
                     {
+                        if(node.incommingMessageIndex === 0 && data[i] !== 0xAA)
+                            continue
+
                         node.incommingMessage[node.incommingMessageIndex] = data[i];
-                        node.incommingMessageIndex++;
-                        if(node.incommingMessageIndex === 15)
-                        {
-                            if(node.incommingMessage[0] === 0xAA && node.incommingMessage[14]=== 0xA5)
-                                node.messageReceived(node.incommingMessage);
-                            else
-                                node.warn('Invalid frame received:' + node.messageToString(node.incommingMessage));
+                        
+                        if(node.incommingMessageIndex === 12  && data[i] === 0xA5 ){
+                            node.messageReceived(node.incommingMessage);
                             node.incommingMessage.fill(0xFF);
                             node.incommingMessageIndex = 0;
+                            continue
                         }
+
+                        if(node.incommingMessageIndex === 14 ){
+                            if(data[i] === 0xA5) {
+                                node.messageReceived(node.incommingMessage);
+                                node.incommingMessage.fill(0xFF);
+                                node.incommingMessageIndex = 0;
+                                continue
+                            }
+                            else {
+                                node.warn('Invalid frame received:' + node.messageToString(node.incommingMessage));
+                                node.incommingMessage.fill(0xFF);
+                                node.incommingMessageIndex = 0;
+                                continue
+                            }
+                        }
+                        node.incommingMessageIndex++;
                     }
                 });
             }
