@@ -38,7 +38,7 @@ module.exports = function(RED) {
             node.status(data)
         })
 
-        node.on('input', function(msg) {
+        node.on('input', function(msg, send, done) {
 
             var hapcanMsg = Buffer.from([0xAA, 0xFF,0xFF, node.compNode,node.compGroup, 0xF0,0xF0,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
             hapcanMsg[1] = node.frameType >>> 4
@@ -68,13 +68,16 @@ module.exports = function(RED) {
                     }
                 }
                 // do not send hapcan frame if control message doesn't modiffy the frame
-                if(!messageModified)
+                if(!messageModified){
+                    done()
                     return
+                }
             }
 
             msg.payload = hapcanMsg;
             msg.topic = 'control';
             node.gateway.send(msg);
+            done()
         });
     }
     RED.nodes.registerType("custom-output",CustomMessageOutputNode);

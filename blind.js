@@ -16,7 +16,7 @@ module.exports = function(RED) {
             node.status(data)
         })
 
-        node.on('input', function(msg) {
+        node.on('input', function(msg, send, done) {
             
             var control = { 
                 channels: Number(node.channel), 
@@ -30,7 +30,7 @@ module.exports = function(RED) {
                 {
                     if( msg.payload.hasOwnProperty('action'))
                     {
-                        if(!parseAction(msg.payload.action, control))
+                        if(!parseAction(msg.payload.action, control, done))
                             return;
                     }
                     if( msg.payload.hasOwnProperty('channels'))
@@ -38,7 +38,7 @@ module.exports = function(RED) {
                         control.channels = 0;
                         if(typeof msg.payload.channels === 'number')
                         {
-                            if(!isChannelValid(msg.payload.channels))
+                            if(!isChannelValid(msg.payload.channels, done))
                                 return;
                             control.channels = 0x01 << (msg.payload.channels -1);
                         }
@@ -46,29 +46,33 @@ module.exports = function(RED) {
                         {
                             for(var i = 0; i < msg.payload.channels.length; i++)
                             {
-                                if(!isChannelValid(msg.payload.channels[i]))
+                                if(!isChannelValid(msg.payload.channels[i], done))
                                     return;
                                 control.channels |= 0x01 << (msg.payload.channels[i] - 1);
                             }
                         }
                         else
                         {
-                            node.error('Invalid channels type: '+ typeof msg.payload.channels); 
+                            done('Invalid channels type: '+ typeof msg.payload.channels); 
                             return;
                         }
                     }
                 }
                 else
                 {
-                    if(!parseAction(msg.payload, control))
+                    if(!parseAction(msg.payload, control, done))
                         return;
                 }
             }
 
-            if( control.action === -1 )
+            if( control.action === -1 ){
+                done()
                 return;
-            if( control.channels === 0 )
+            }
+            if( control.channels === 0 ){
+                done()
                 return;
+            }
 
             var hapcanMsg = Buffer.from([0xAA, 0x10,0xA0, 0xF0,0xF0, 0xFF,0xFF, node.node,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
             
@@ -79,20 +83,21 @@ module.exports = function(RED) {
             msg.payload = hapcanMsg;
             msg.topic = 'control';
             node.gateway.send(msg);
+            done()
         });
         this.on('close', function() {
             // tidy up any state
         });
 
-        function isChannelValid(channel)
+        function isChannelValid(channel, done)
         {
             var isValid = (channel >= 1 && channel <= 3);
             if(!isValid)
-                node.error('Invalid channel: '+ channel);
+                done('Invalid channel: '+ channel);
             return isValid;
         }
 
-        function parseAction(value, control)
+        function parseAction(value, control, done)
         {
             if(typeof value === "string" )
             {
@@ -105,15 +110,15 @@ module.exports = function(RED) {
                     case "DOWN": control.action = 0x04; break;
                     case "START": control.action = 0x05; break;
                     default:
-                    node.error('Invalid action string: '+ value);
-                    return false;
+                        done('Invalid action string: '+ value);
+                        return false;
                 }
             }
             else if(typeof value === 'number')
             {
                 if(value < 0 || value > 5)
                 {
-                    node.error('Invalid action number value: '+ value);
+                    done('Invalid action number value: '+ value);
                     return false;
                 }
                 control.action = value;

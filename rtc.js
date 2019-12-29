@@ -17,7 +17,7 @@
 
         this.number2bcd = (value) => ( ((Math.floor(value/10)& 0x0F)<<4) + ((value%10) & 0x0F));
         
-        node.on('input', function(msg) {
+        node.on('input', function(msg, send, done) {
             
             var control = { 
                 action: Number(node.defaultAction),
@@ -32,10 +32,16 @@
                     control.action = 2;
                 }
                 else
+                {
+                    done()
                     return;
+                }
             }
             if( control.action === -1 )
+            {
+                done()
                 return;
+            }
             
             //set time
             if( control.action === 0 || control.action === 2)
@@ -70,6 +76,7 @@
                 msg.topic = 'control';
                 node.gateway.send(msg);
             }
+            done()
         });
         this.on('close', function() {
             // tidy up any state

@@ -15,7 +15,7 @@ module.exports = function(RED) {
             node.status(data)
         })
 
-        node.on('input', function(msg) {
+        node.on('input', function(msg, send, done) {
    
           var control=[];
           control[0] =  { node: Number(node.node),
@@ -80,7 +80,7 @@ module.exports = function(RED) {
 
             }
               
-            sendMessage(control, node, msg);
+            sendMessage(control, node, msg, done);
             
         });
         this.on('close', function() {
@@ -104,7 +104,7 @@ module.exports = function(RED) {
         function sleep(ms){
             return new Promise(resolve => setTimeout(resolve, ms));
         }
-        async function sendMessage(control, node, msg){
+        async function sendMessage(control, node, msg, done){
             for (var i=0; i<control.length; i++){
                 if (control[i].node === 0 ) {
                     var hapcanMsg = Buffer.from([0xAA, 0x10,0x80, 0xF0,0xF0, 0xFF,0xFF, 0x00,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
@@ -117,6 +117,7 @@ module.exports = function(RED) {
                 await sleep(node.delay);
                 node.gateway.send(msg);
             }
+            done()
         }
     }
     RED.nodes.registerType("state-output",StateOutputNode);

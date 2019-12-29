@@ -17,7 +17,7 @@
             node.status(data)
         })
 
-        node.on('input', function(msg) {
+        node.on('input', function(msg, send, done) {
             
             var control = { 
                 leds: this.leds,
@@ -30,7 +30,7 @@
                 {
                     if( msg.payload.hasOwnProperty('action'))
                     {
-                        if(!parseAction(msg.payload.action, control))
+                        if(!parseAction(msg.payload.action, control, done))
                             return;
                     }
                     if( msg.payload.hasOwnProperty('leds'))
@@ -62,22 +62,26 @@
                         }
                         else
                         {
-                            node.error('Invalid leds element type: '+ typeof msg.payload.leds); 
+                            done('Invalid leds element type: '+ typeof msg.payload.leds); 
                             return;
                         }
                     }
                 }
                 else
                 {
-                    if(!parseAction(msg.payload, control))
+                    if(!parseAction(msg.payload, control, done))
                         return;
                 }
             }
 
-            if( control.action === -1 )
+            if( control.action === -1 ){
+                done()
                 return;
-            if( control.leds.length !== 14 )
+            }
+            if( control.leds.length !== 14 ){
+                done()
                 return;
+            }
 
             var hapcanMsg = Buffer.from([0xAA, 0x10,0xA0, 0xF0,0xF0, 0xFF,0x00, node.node,node.group, 0x00,0xFF,0xFF,0xFF,0xFF,0xA5]);
             
@@ -95,6 +99,7 @@
             msg.payload = hapcanMsg;
             msg.topic = 'control';
             node.gateway.send(msg);
+            done()
         });
         this.on('close', function() {
             // tidy up any state
@@ -108,7 +113,7 @@
             return isValid;
         }
 
-        function parseAction(value, control)
+        function parseAction(value, control, done)
         {
             if(typeof value === "string" )
             {
@@ -118,7 +123,7 @@
                     case "ON": control.action = 0x01; break;
                     case "TOGGLE": control.action = 0x02; break;
                     default:
-                    node.error('Invalid action string: '+ value);
+                    done('Invalid action string: '+ value);
                     return false;
                 }
             }
@@ -126,7 +131,7 @@
             {
                 if(value < 0 || value > 2)
                 {
-                    node.error('Invalid action number value: '+ value);
+                    done('Invalid action number value: '+ value);
                     return false;
                 }
                 control.action = value;
