@@ -1,4 +1,285 @@
 <script type="text/javascript">
+    RED.nodes.registerType('button-output',{
+        category: 'hapcan',
+        color: '#C1C1C1',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            leds: {value: [], required: true, validate: function(val){return val.length === 14}},
+            defaultAction: {value: 0x02, required: true, validate: function(val) {return (val>=-1 && val <0x03)}},
+        },
+        inputs:1,
+        outputs:0,
+        icon: "relay-output.png",
+        align: 'right',
+        label: function() {
+            return (this.name||"button output") + ' ('+this.node+','+this.group+')';
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        inputLabels: "button control message",
+        oneditprepare: async function() {
+
+            let config = this
+            var nodeOptions = '';
+            var groupOptions = '';
+            var devicesOptions = null
+            const deviceListResponse = await fetch('hapcan-device-list?applicationType=1')
+
+            var devicesSelect = $("#node-input-devices")
+            var nodeSelect =  $("#node-input-node")
+            var groupSelect =  $("#node-input-group")
+
+            const deviceList = JSON.parse(await deviceListResponse.json())
+            var currentDevice = null
+            deviceList.forEach( (device) => {
+                var selected = '';
+                if(Number(config.node) === device.node && Number(config.group) === device.group)
+                {
+                    selected = 'selected="selected"'
+                    currentDevice = device
+                }
+                devicesOptions += `<option ${selected} value="${device.id}">${device.description} (${device.node},${device.group})</option>`
+            })
+            devicesOptions += `<option ${currentDevice === null ? 'selected="selected"' : ''} value="0">(set node, group manually)</option>`
+
+            devicesSelect.append(devicesOptions)
+
+            devicesSelect.on('change', function() {
+                
+                if(Number(this.value) === 0)
+                {
+                    nodeSelect.removeAttr('disabled')
+                    groupSelect.removeAttr('disabled')
+                }
+                currentDevice = deviceList.find(v=>v.id === this.value)
+                
+                if(currentDevice !== undefined) {
+                    nodeSelect.find('option').removeProp('selected').filter(`[value=${currentDevice.node}]`).prop('selected', true).trigger('change')
+                    groupSelect.find('option').removeProp('selected').filter(`[value=${currentDevice.group}]`).prop('selected', true).trigger('change')
+                    nodeSelect.attr('disabled', 'disabled')
+                    groupSelect.attr('disabled', 'disabled')
+                }
+            })
+
+            devicesSelect.trigger('change')
+
+            for(var i = 1; i < 256; i++)
+            {
+                var selectedNode = '';
+                if((Number(this.node) === i))
+                    selectedNode = 'selected="selected"';
+                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+
+                var selectedGroup = '';
+                if((Number(this.group) === i))
+                    selectedGroup = 'selected="selected"';
+                
+                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+            }
+            
+            nodeSelect.append(nodeOptions);
+            groupSelect.append(groupOptions);
+
+            if(this.leds.length === 14){
+                for(var i = 0; i < 14; i++){
+                    if(this.leds[i].checked)
+                        $(`#led${i+1}`).prop('checked', true);
+                    
+                    $(`#node-input-led${i+1}name`).val(this.leds[i].name)
+                }
+            }
+        },
+        oneditsave: function(){
+            this.leds = [];
+            for(var i = 0; i < 14; i++){
+                var led = {checked: $(`#led${i+1}`).is(":checked") ? true : false, 
+                            name: $(`#node-input-led${i+1}name`).val()}
+                this.leds.push(led)
+            }
+        }
+        });
+</script>
+
+<script type="text/x-red" data-template-name="button-output">
+<style>
+    .leds .property-name {
+        width: 40%;
+    }
+</style>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-devices"><i class="fa fa-microchip"></i> Device</label>
+        <select id="node-input-devices"></select>
+    </div>    
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-cube"></i> Node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-cubes"></i> Group</label>
+        <select id="node-input-group"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-defaultAction"><i class="fa fa-play"></i> Default action</label>
+        <select id="node-input-defaultAction">
+                <option value="-1">Do nothing</option>
+                <option value="0">Turn OFF</option>
+                <option value="1">Turn ON</option>
+                <option selected="selected" value="2">Toggle</option>
+        </select>
+    </div>    
+
+    <div class="leds">
+        <div class="form-row">
+            <label for="node-input-led1name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span>
+                LED 1</label>
+            <input style="width: 10%;" id="led1" type="checkbox" value="1">
+            <input class="property-name" type="text" id="node-input-led1name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led2name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span>
+                 LED 2</label>
+            <input style="width: 10%;" id="led2" type="checkbox" value="2">
+            <input class="property-name" type="text" id="node-input-led2name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led3name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 3</label>
+            <input style="width: 10%;" id="led3" type="checkbox" value="4">
+            <input class="property-name" type="text" id="node-input-led3name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led4name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 4</label>
+            <input style="width: 10%;" id="led4" type="checkbox" value="8">
+            <input class="property-name" type="text" id="node-input-led4name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led5name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 5</label>
+            <input style="width: 10%;" id="led5" type="checkbox" value="16">
+            <input class="property-name" type="text" id="node-input-led5name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led6name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 6</label>
+            <input style="width: 10%;" id="led6" type="checkbox" value="32">
+            <input class="property-name" type="text" id="node-input-led6name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led7name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 7</label>
+            <input style="width: 10%;" id="led7" type="checkbox" value="64">
+            <input class="property-name" type="text" id="node-input-led7name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led8name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 8</label>
+            <input style="width: 10%;" id="led8" type="checkbox" value="128">
+            <input class="property-name" type="text" id="node-input-led8name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led9name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 9</label>
+            <input style="width: 10%;" id="led9" type="checkbox" value="256">
+            <input class="property-name" type="text" id="node-input-led9name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led10name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 10</label>
+            <input style="width: 10%;" id="led10" type="checkbox" value="512">
+            <input class="property-name" type="text" id="node-input-led10name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led11name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 11</label>
+            <input style="width: 10%;" id="led11" type="checkbox" value="1024">
+            <input class="property-name" type="text" id="node-input-led11name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led12name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 12</label>
+            <input style="width: 10%;" id="led12" type="checkbox" value="2048">
+            <input class="property-name" type="text" id="node-input-led12name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led13name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 13</label>
+            <input style="width: 10%;" id="led13" type="checkbox" value="4096">
+            <input class="property-name" type="text" id="node-input-led13name" placeholder="led name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-led14name"><span class="fa-stack"><i class="fa fa-minus fa-stack-1x" style="transform: scale(2.0, 0.5)"></i><i class="fa fa-step-forward fa-stack-1x"></i><i class="fa fa-long-arrow-up fa-stack-1x" style="transform: translate(0px, -12px) scale(0.5) rotate(45deg)"></i><i style="transform: translate(5px, -10px) scale(0.5) rotate(45deg)" class="fa fa-long-arrow-up fa-stack-1x"></i></span> LED 14</label>
+            <input style="width: 10%;" id="led14" type="checkbox" value="8192">
+            <input class="property-name" type="text" id="node-input-led14name" placeholder="led name">
+        </div>
+
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="button-output">
+    <p>Allows controlling of the Hapcan Button UNIV-3.1.3 module.</p>
+    <p>The node allows you to control button's module LEDs. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">string | number | bool | any | object</span></dt>
+        <dd>Any input message will perform default action. If topic is set to <i>control</i> the payload will control the Button module.</dd>
+
+        <dt class="optional">topic <span class="property-type">string</span></dt>
+        <dd>Topic is optional. When a <i>control</i> value is provided it will overrides default action settings and allows controlling of the node directly.</dd>
+    </dl>
+    
+    <h3>Details</h3>
+    <p>The default node behaviour on any input message is to execute the action specified in properties. 
+        When <code>msg.topic</code> is set to <i>control</i> then input value will control node in several ways. In control mode the <code>msg.payload</code> 
+        can be one of the following types:
+    </p>
+    <dl class="message-properties">
+        <dt>string</dt> 
+        <dd>Value of <i>on</i>, <i>off</i> or <i>toggle</i> will control the default channel. Other strings are ignored. Case insensitive.</dd>
+
+        <dt>number</dt> 
+        <dd>Hapcan's Button module instruction. 0(off), 1(on) or 2(toggle) will control the default leds. Other values are ignored.</dd>            
+
+        <dt>boolean</dt> 
+        <dd>Default leds will turn ON when value is true, otherwise it will turn OFF. This type is easy to use with UI switch control.</dd>
+
+        <dt>object</dt> 
+        <dd>Gives an ability to override node default parameters. See details below.</dd>
+        
+    </dl>
+    <h3>Full control object definition</h3>
+    <p>
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows to control Button module LEDs. Below are the possible properties list that can be specified. 
+        If no property is specified the default node settings values will be used. Node will throw an error in case of invalid values.
+    </p>
+    <dl class="message-properties">
+        <dt>action <span class="property-type">string | number | bool</span></dt></dt> 
+        <dd>String or number action representation. See <code>msg.payload</code> description above for details.</dd>
+
+        <dt>leds <span class="property-type">array[int,string]</span></dt> 
+        <dd>Array of selected LEDs to perform the action. You can pass LED number (1-14) oraz LED names specified in node configuration.
+            For example:
+<pre>
+{
+    "action": "toogle",
+    "leds": [1,2 "red led", "power led"]
+}
+</pre>
+        </dd>
+
+    </dl>
+    
+    <h3>References</h3>
+    <ul>
+        <li><a href="https://hapcan.com/devices/universal/univ_3/univ_3-1-3-x/index.htm">Hapcan button UNIV-3.1.3.x</a> - module firmware notes.</li>
+    </ul>
+
+</script>
+
+
+<script type="text/javascript">
     RED.nodes.registerType('button-input',{
         category: 'hapcan',
         color: '#D3D3D3',

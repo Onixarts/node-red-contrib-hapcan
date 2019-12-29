@@ -44,6 +44,7 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 - **Blind input** receives messages from [blind controller](http://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
 - **Blind output** allows controlling the [blind controller](http://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
 - **Button input** receives messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-1-x-x.htm)
+- **Button output** allows controlling button LEDs [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-1-3-x.htm)
 - **IR input** receive infrared sensor messages from [Infrared receiver and transmitter](http://hapcan.com/devices/universal/univ_3/univ_3-5-0-x/index.htm)
 - **Relay input** receives messages from [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
 - **Relay output** allows controlling the [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
