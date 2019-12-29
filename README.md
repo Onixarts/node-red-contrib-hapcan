@@ -11,11 +11,14 @@ Nodes are using the [Hapcan ethernet module](http://hapcan.com/devices/universal
 - Hapcan based infrastructure
 - Hapcan ethernet module
 
-# New in version 2.0
+# New in version 2.1
 
-Added new **Discover devices** function which finds Hapcan devices in the bus. Once devices are found they are stored in a configuration node, so the discover function should be used only when Hapcan network is somehow changed. Devices list is then used in nodes for quick device selection - no need to set node and group anymore! But You can if You want.
+Node-red 1.x.x support, includes new output nodes input event registration - which allows to using new Complete Node-red node.
+There are also some visual issues fixes for custom-input and custom-output nodes for Node-red 1.x.x.
 
-There is also new frames receiving algorithm implemented, which should be shorter frames proof. This frames emitted by Hapcan programmer when connecting to the bus cause invalid frame errors and broke whole receiving mechanizm.
+Added new button output node, that controls 14 buttons LEDs.
+
+**This version require Node-red version 1.x.x and later and will not work on older versions.**
 
 
 # Instalation
