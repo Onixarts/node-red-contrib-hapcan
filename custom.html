@@ -166,6 +166,26 @@
                 })
             })
 
+            var frameTypeMenuTracker = function (event) {
+
+                var e = $(event.target);
+                if (($(e).attr('id') !== 'frame-type-dropdown-menu-button') && $(e).parents('#frame-type-dropdown-menu-button').length < 1) {
+                    $('#hapcan-frames').css("display", 'none')
+                    $(document).off('click', frameTypeMenuTracker)
+                }
+            }
+
+            $('#frame-type-dropdown-menu-button').click(function () {
+                if ($('#hapcan-frames').css("display") === 'none') {
+                    $('#hapcan-frames').css("display", 'block')
+                    $(document).on('click', frameTypeMenuTracker)
+                }
+                else {
+                    $('#hapcan-frames').css("display", 'none')
+                    $(document).off('click', frameTypeMenuTracker)
+                }
+            })
+            
             function updateFrameTypeName(){
                 var val = $('#frame-type').val().toUpperCase()
 
@@ -237,10 +257,10 @@
 <script type="text/x-red" data-template-name="custom-output">
     <style>
         .databytes .property-name {
-            width: 23%;
+            width: 35% !important;
         }
         .databytes .property-value-hex {
-            width: 40px;
+            width: 40px !important;
             text-transform:uppercase;
             text-align: center;
         }
@@ -256,7 +276,7 @@
         }
      
         .databytes .property-value-dec {
-            width: 50px;
+            width: 50px !important;
             text-align: right;
         }
         table.frame-preview {
@@ -295,14 +315,18 @@
             border-radius: 0px 4px 4px 0px;
             height: 22px;
         }
-        .frame-type-container .dropdown-menu a span {
+        
+        #hapcan-frames .dropdown-header {
+            opacity: 0.6;
+            padding: 4px;
+            background-color: #ddd;
+        }
+
+        #hapcan-frames a span {
             color: #888;
-            margin-left: 20px;
+            margin: auto 8px auto 20px;
             float: right;
-        }
-        .frame-type-container .dropdown-menu a:hover span {
-            color: #ddd;
-        }
+        }        
     </style>
 
 
@@ -327,8 +351,8 @@
 
     <div class="form-row frame-type-container">
         <label for="frameType"><i class="fa fa-window-maximize"></i> Frame type</label>
-        <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX"><a href="#" class="dropbtn" data-toggle="dropdown"><i class="fa fa-caret-down"></i></a>
-        <ul id="hapcan-frames" class="dropdown-menu" style="width: auto !important;">
+        <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX"><a href="#" id="frame-type-dropdown-menu-button" class="dropbtn" ><i class="fa fa-caret-down"></i></a>
+        <ul id="hapcan-frames" class="red-ui-menu-dropdown" style="width: auto !important;">
         </ul>
         <span id="frame-type-name">custom frame</span>
     </div>
@@ -649,6 +673,27 @@
                 })
             })
 
+            var frameTypeMenuTracker = function(event){
+                var e = $(event.target);
+                if(($(e).attr('id')!=='frame-type-dropdown-menu-button') && $(e).parents('#frame-type-dropdown-menu-button').length < 1) { 
+                    $('#hapcan-frames').css("display", 'none')
+                    $(document).off('click', frameTypeMenuTracker)
+                }
+            }
+
+            $('#frame-type-dropdown-menu-button').click(function(){
+                if( $('#hapcan-frames').css("display") === 'none' )
+                {
+                    $('#hapcan-frames').css("display", 'block')
+                    $(document).on('click', frameTypeMenuTracker)
+                }
+                else
+                {
+                    $('#hapcan-frames').css("display", 'none')
+                    $(document).off('click', frameTypeMenuTracker)
+                }
+            })
+
             $('.property-value-hex').each(function(){
                 $(this).keypress(function(event) {
                     var regex = new RegExp("^[a-fA-F0-9]+$");
@@ -712,14 +757,19 @@
             border-radius: 0px 4px 4px 0px;
             height: 22px;
         }
-        .frame-type-container .dropdown-menu a span {
+
+        #hapcan-frames .dropdown-header {
+            opacity: 0.6;
+            padding: 4px;
+            background-color: #ddd;
+        }
+
+        #hapcan-frames a span {
             color: #888;
-            margin-left: 20px;
+            margin: auto 8px auto 20px;
             float: right;
         }
-        .frame-type-container .dropdown-menu a:hover span {
-            color: #ddd;
-        }        
+      
     </style>
 
     <div class="form-row">
@@ -745,8 +795,8 @@
 
     <div class="form-row frame-type-container">
             <label for="frameType"><i class="fa fa-window-maximize"></i> Frame filter</label>
-            <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX"><a href="#" class="dropbtn" data-toggle="dropdown"><i class="fa fa-caret-down"></i></a>
-            <ul id="hapcan-frames" class="dropdown-menu" style="width: auto !important;">
+            <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX"><a href="#" id="frame-type-dropdown-menu-button" class="dropbtn"><i class="fa fa-caret-down"></i></a>
+            <ul id="hapcan-frames" class="red-ui-menu-dropdown" style="width: auto !important;">
             </ul>
             <span id="frame-type-name"> receive any frame type</span>
     </div>
