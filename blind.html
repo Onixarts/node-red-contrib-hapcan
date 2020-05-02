@@ -32,26 +32,38 @@
             var nodeOptions = '';
             var groupOptions = '';
             var devicesOptions = null
-            const deviceListResponse = await fetch('hapcan-device-list?applicationType=7')
             
+            var gatewaySelect = $('#node-input-gateway')
             var devicesSelect = $("#node-input-devices")
             var nodeSelect =  $("#node-input-node")
             var groupSelect =  $("#node-input-group")
-
-            const deviceList = JSON.parse(await deviceListResponse.json())
             var currentDevice = null
-            deviceList.forEach( (device) => {
-                var selected = '';
-                if(Number(config.node) === device.node && Number(config.group) === device.group)
+                
+            var deviceList = []
+            gatewaySelect.change(function()
+            {
+                devicesOptions = ''
+                var selectedGatewayId = gatewaySelect.children('option[selected]').first().val()
+                if(selectedGatewayId == null)
+                    selectedGatewayId = gatewaySelect.children("option").first().val()
+                var gateway = RED.nodes.node(selectedGatewayId)
+                if(gateway !== null )
                 {
-                    selected = 'selected="selected"'
-                    currentDevice = device
+                    deviceList = gateway.devices.filter((d) => d.applicationType === 7)
+                    deviceList.forEach( (device) => {
+                        var selected = '';
+                        if(Number(config.node) === device.node && Number(config.group) === device.group)
+                        {
+                            selected = 'selected="selected"'
+                            currentDevice = device
+                        }
+                        devicesOptions += `<option ${selected} value="${device.id}">${device.description} (${device.node},${device.group})</option>`
+                    })
                 }
-                devicesOptions += `<option ${selected} value="${device.id}">${device.description} (${device.node},${device.group})</option>`
-            })
-            devicesOptions += `<option ${currentDevice === null ? 'selected="selected"' : ''} value="0">(set node, group manually)</option>`
+                devicesOptions += `<option ${currentDevice === null ? 'selected="selected"' : ''} value="0">(set node, group manually)</option>`
 
-            devicesSelect.append(devicesOptions)
+                devicesSelect.empty().append(devicesOptions)
+            })
             
             devicesSelect.on('change', function() {
                 
@@ -70,8 +82,6 @@
                 }
             })
             
-            devicesSelect.trigger('change')
-
             for(var i = 1; i < 256; i++)
             {
                 var selectedNode = '';
@@ -225,26 +235,38 @@
             var nodeOptions = '';
             var groupOptions = '';
             var devicesOptions = null
-            const deviceListResponse = await fetch('hapcan-device-list?applicationType=7')
-
+           
+            var gatewaySelect = $('#node-input-gateway')
             var devicesSelect = $("#node-input-devices")
             var nodeSelect =  $("#node-input-node")
             var groupSelect =  $("#node-input-group")
-
-            const deviceList = JSON.parse(await deviceListResponse.json())
             var currentDevice = null
-            deviceList.forEach( (device) => {
-                var selected = '';
-                if(Number(config.node) === device.node && Number(config.group) === device.group)
+                
+            var deviceList = []
+            gatewaySelect.change(function()
+            {
+                devicesOptions = ''
+                var selectedGatewayId = gatewaySelect.children('option[selected]').first().val()
+                if(selectedGatewayId == null)
+                    selectedGatewayId = gatewaySelect.children("option").first().val()
+                var gateway = RED.nodes.node(selectedGatewayId)
+                if(gateway !== null )
                 {
-                    selected = 'selected="selected"'
-                    currentDevice = device
+                    deviceList = gateway.devices.filter((d) => d.applicationType === 7)
+                    deviceList.forEach( (device) => {
+                        var selected = '';
+                        if(Number(config.node) === device.node && Number(config.group) === device.group)
+                        {
+                            selected = 'selected="selected"'
+                            currentDevice = device
+                        }
+                        devicesOptions += `<option ${selected} value="${device.id}">${device.description} (${device.node},${device.group})</option>`
+                    })
                 }
-                devicesOptions += `<option ${selected} value="${device.id}">${device.description} (${device.node},${device.group})</option>`
-            })
-            devicesOptions += `<option ${currentDevice === null ? 'selected="selected"' : ''} value="0">(set node, group manually)</option>`
+                devicesOptions += `<option ${currentDevice === null ? 'selected="selected"' : ''} value="0">(set node, group manually)</option>`
 
-            devicesSelect.append(devicesOptions)
+                devicesSelect.empty().append(devicesOptions)
+            })
 
             devicesSelect.on('change', function() {
                 
@@ -262,8 +284,6 @@
                     groupSelect.attr('disabled', 'disabled')
                 }
             })
-
-            devicesSelect.trigger('change')
 
             for(var i = 1; i < 256; i++)
             {

@@ -257,55 +257,45 @@ module.exports = function (RED) {
             }
         }
 
-        RED.httpAdmin.get("/hapcan-device-list", RED.auth.needsPermission('serial.read'), function(req,res) {
+        RED.httpAdmin.get("/hapcan-devices-discover/:id/:group", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
-            if(req.query.applicationType === undefined)
-                res.json(JSON.stringify(node.devices))
-            else
-            {
-                var deviceList = node.devices.filter((d) => d.applicationType === Number(req.query.applicationType))
-                res.json(JSON.stringify(deviceList))
-            }
-        });
-
-        RED.httpAdmin.get("/hapcan-devices-discover", RED.auth.needsPermission('serial.read'), async function(req,res) {
-            
-            if(Number(req.query.group) === 1)
+            var node = RED.nodes.getNode(req.params.id);
+            if(Number(req.params.group) === 1)
             {
                 node.devices = []
             }
-
+    
             node.foundDevicesInGroup = 0
             node.firmwareResponsesInGroup = 0
             node.descriptionResponsesInGroup = 0
-
+    
             try{
-                node.requestIdGroup = Number(req.query.group)
-
+                node.requestIdGroup = Number(req.params.group)
+    
                 // request Id from group
-                var msg = Buffer.from([0xAA, 0x10, 0x30, node.node,node.group, 0xFF,0xFF,0x00, req.query.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                var msg = Buffer.from([0xAA, 0x10, 0x30, node.node,node.group, 0xFF,0xFF,0x00, req.params.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
                 node.send({payload: msg})
                 
                 await waitForNewDevicesAsync()
-
+    
                 if(node.foundDevicesInGroup > 0 )
                 {
                     // request firmware type from group
-                    var msg = Buffer.from([0xAA, 0x10, 0x50, node.node,node.group, 0xFF,0xFF,0x00, req.query.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                    var msg = Buffer.from([0xAA, 0x10, 0x50, node.node,node.group, 0xFF,0xFF,0x00, req.params.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
                     node.send({payload: msg})
-
+    
                     await waitForFirmwareResponseAsync()
-
+    
                     // request description from group
-                    var msg = Buffer.from([0xAA, 0x10, 0xD0, node.node,node.group, 0xFF,0xFF,0x00, req.query.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                    var msg = Buffer.from([0xAA, 0x10, 0xD0, node.node,node.group, 0xFF,0xFF,0x00, req.params.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
                     node.send({payload: msg})
-
+    
                     await waitForDescriptionResponseAsync()
                 }
             }
             catch(e)
             {console.log(e)}
-
+    
             res.json(JSON.stringify(node.devices));
             
         });
@@ -421,4 +411,6 @@ module.exports = function (RED) {
         })
     }
     RED.nodes.registerType("hapcan-gateway", HapcanGatewayNode);
+
+
 }

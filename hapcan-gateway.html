@@ -62,7 +62,7 @@
                         discoveringGroup = 1
                         for(let i = 1; i < 255; i++){
                             $('#hapcan-discover-progressbar div').css('width', parseInt(((i+1)/255)*100)+'%' )
-                            await $.getJSON(`hapcan-devices-discover?group=${i}`,function(data) {
+                            await $.getJSON(`hapcan-devices-discover/${config.id}/${i}`,function(data) {
                                 config.devices = JSON.parse(data)
                                 showDevices()
                             })
