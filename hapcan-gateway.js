@@ -23,8 +23,7 @@ module.exports = function (RED) {
         this.reconnectPeriod = Number(config.reconnectPeriod || 1000);
         this.client = null;
         this.debugmode = config.debugmode || false;
-        this.incommingMessage = Buffer.allocUnsafe(15);
-        this.incommingMessage.fill(0xFF);
+        this.incommingMessage = Buffer.alloc(15,0xFF);
         this.incommingMessageIndex = 0;
         this.eventEmitter = new events.EventEmitter();
         this.eventEmitter.setMaxListeners(50);
@@ -138,7 +137,7 @@ module.exports = function (RED) {
 
         class HapcanMessage {
             constructor(frame) {
-                this.frame = frame;
+                this.frame = Buffer.from(frame);
                 this.frameType = (frame[1] << 4) + (frame[2] >>> 4)
                 this.isAnswer = (frame[2] & 0x01) === 0 ? false : true;
                 this.node = frame[3];
@@ -156,7 +155,7 @@ module.exports = function (RED) {
 
             var eventArgs = { payload: hapcanMsg, topic: 'Hapcan Message' };
             node.eventEmitter.emit('messageReceived', eventArgs);
-            node.eventEmitter.emit('messageReceived_'+ ('000' + hapcanMsg.frameType.toString(16)).substr(-3).toUpperCase(), eventArgs);
+            node.eventEmitter.emit('messageReceived_'+ ('000' + hapcanMsg.frameType.toString(16)).substr(-3).toUpperCase(), RED.util.cloneMessage(eventArgs));
         }
 
         this.send = function(msg){
