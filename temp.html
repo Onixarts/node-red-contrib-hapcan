@@ -52,11 +52,10 @@
                 }
                 devicesOptions += `<option ${currentDevice === null ? 'selected="selected"' : ''} value="0">(set node, group manually)</option>`
 
-                devicesSelect.empty().append(devicesOptions)
+                devicesSelect.empty().append(devicesOptions).trigger('change')
             })            
 
             devicesSelect.on('change', function() {
-                
                 if(Number(this.value) === 0)
                 {
                     nodeSelect.removeAttr('disabled')
