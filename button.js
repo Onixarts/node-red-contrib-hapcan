@@ -93,7 +93,7 @@
             }
             for(var i = 8; i < 14; i++){
                 if( control.leds[i].checked )
-                    hapcanMsg[9] |= (1 << i);
+                    hapcanMsg[9] |= (1 << (i-8));
             }
             
             msg.payload = hapcanMsg;
