@@ -1,0 +1,911 @@
+<script type="text/javascript">
+    RED.nodes.registerType('custom-output',{
+        category: 'hapcan',
+        color: '#C1C1C1',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 240, required: true, validate: function(val){return (val >= 0 && val < 256);} },
+            node: {value: 240, required: true, validate: function(val){return (val >= 0 && val < 256);}},
+            frameType: {value: 266, required: true, validate: function(val) {if(!Number.isInteger(val)) return false; if(Number(val)<0 || Number(val)> 4095) return false; return true;} },
+            d0name: {value:''},
+            d1name: {value:''},
+            d2name: {value:''},
+            d3name: {value:''},
+            d4name: {value:''},
+            d5name: {value:''},
+            d6name: {value:''},
+            d7name: {value:''},
+            d0value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d1value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d2value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d3value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d4value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d5value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d6value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+            d7value: {value: 255, validate: function(val){ var num = Number(val); if( !Number.isInteger(num)) return false; return (num>=0 && num <= 255)}},
+        },
+        inputs:1,
+        outputs:0,
+        icon: "relay-output.png",
+        align: 'right',
+        label: function() {
+            return (this.name||"custom output") + ' ('+this.node+','+this.group+') [0x' + (('000'+ Number(this.frameType).toString(16)).substr(-3).toUpperCase()) +']'
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        inputLabels: "custom control",
+        oneditprepare: function() {
+            
+            const hapcanFrames = [
+                    { type: "header", icon: "",                     name: "System frames",                      frame: [] },
+                    { type: "010", icon: "fa-fire",                 name: "all exit from programming mode",     frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']], compNode: 0, compGroup: 0 },
+                    { type: "020", icon: "fa-fire",                 name: "node exit from programming mode",    frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']], compNode: 255, compGroup: 255},
+                    { type: "030", icon: "fa-warning",              name: "programming address frame",          frame: [['adru','FF'],['adrh','FF'],['adrl','FF'],['','FF'],['','FF'],['cmd','FF'],['','FF'],['','FF']], compNode: 255, compGroup: 255 },
+                    { type: "040", icon: "fa-warning",              name: "programming data frame (write)",     frame: [['d0','FF'],['d1','FF'],['d2','FF'],['d3','FF'],['d4','FF'],['d5','FF'],['d6','FF'],['d7','FF']], compNode: 255, compGroup: 255  },
+                    { type: "0F0", icon: "fa-exclamation-circle",   name: "error frame",                        frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "100", icon: "fa-fire",                 name: "node enter programming mode",        frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "101", icon: "fa-warning",              name: "group reboot",                       frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "102", icon: "fa-warning",              name: "node reboot",                        frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "103", icon: "fa-question-circle",      name: "group serial numbers request",       frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "104", icon: "fa-question-circle",      name: "node serial number request",         frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "105", icon: "fa-question-circle",      name: "group firmware request",             frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "106", icon: "fa-question-circle",      name: "node firmware request",              frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "107", icon: "fa-warning",              name: "node set default ID",                frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "108", icon: "fa-list",                 name: "group status request",               frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "109", icon: "fa-list",                 name: "node status request",                frame: [['','FF'],['','FF'],['node','FF'],['grop','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10A", icon: "fa-gears",                name: "execute node instruction",           frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10B", icon: "fa-bolt",                 name: "group power supply voltage request", frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10C", icon: "fa-bolt",                 name: "node power supply voltage request",  frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10D", icon: "fa-font",                 name: "group description request",          frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10E", icon: "fa-font",                 name: "node description request",           frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10F", icon: "fa-microchip",            name: "group processor ID request",         frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "111", icon: "fa-microchip",            name: "node processor ID request",          frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "112", icon: "fa-clock-o",              name: "group uptime request",               frame: [['','FF'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "113", icon: "fa-clock-o",              name: "node uptime request",                frame: [['','FF'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "114", icon: "fa-heartbeat",            name: "group health check request",         frame: [['cmd','01'],['','FF'],['','00'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "115", icon: "fa-heartbeat",            name: "node health check request",          frame: [['cmd','01'],['','FF'],['node','FF'],['group','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "divider", icon: "",                    name: "",                                   frame: [] },
+                    { type: "header", icon: "",                     name: "Devices status frames",              frame: [] },
+                    { type: "300", icon: "fa-clock-o",              name: "real time clock status",             frame: [['','FF'],['year','19'],['month','01'],['date','01'],['day','01'],['hour','00'],['min','00'],['sec','00']] },
+                    { type: "301", icon: "fa-hand-o-down",          name: "button status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['led','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "302", icon: "fa-power-off",            name: "relay status",                       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "303", icon: "fa-feed",                 name: "ir receiver status",                 frame: [['','FF'],['','FF'],['codeType','FF'],['code1','FF'],['code2','FF'],['code3','FF'],['','FF'],['','FF']] },
+                    { type: "304", icon: "fa-thermometer-half",     name: "temperature status",                 frame: [['','FF'],['','FF'],['dataType','11'],['tempMsb','FF'],['tempLsb','FF'],['setPoMsb','FF'],['setPoLsb','FF'],['hyster','FF']] },
+                    { type: "306", icon: "fa-lightbulb-o",          name: "dimmer status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "307", icon: "fa-bars",                 name: "blind controller status",            frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['move','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "308", icon: "fa-stop-circle-o",        name: "RGB LED controller status",          frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['relay','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "309", icon: "fa-external-link",        name: "open collector output status",       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['','FF'],['timer','FF']] }
+            ]
+            
+            var nodeOptions = '';
+            var groupOptions = '';
+
+            for(var i = 0; i < 256; i++)
+            {
+                var selectedNode = '';
+                if((Number(this.node) === i))
+                    selectedNode = 'selected="selected"';
+                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+
+                var selectedGroup = '';
+                if((Number(this.group) === i))
+                    selectedGroup = 'selected="selected"';
+                
+                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+            }
+
+            
+            $("#node-input-node").append(nodeOptions).on("change", function(){computePreview()});
+            $("#node-input-group").append(groupOptions).on("change", function(){computePreview()});
+
+            $('#frame-type').val( ('000'+ Number(this.frameType).toString(16)).substr(-3));
+            updateFrameTypeName()
+
+            function computePreview(){
+                $('table.frame-preview td').each(function(i){
+                    
+                    switch(i)
+                    {
+                        case 1: $(this).text( $('#frame-type').val().substr(0,2) ); break;
+                        case 2: $(this).text( $('#frame-type').val().substr(-1)+'0' ); break;
+                        case 3: $(this).text(('00'+Number($('#node-input-node').val()).toString(16)).substr(-2));break
+                        case 4: $(this).text(('00'+Number($('#node-input-group').val()).toString(16)).substr(-2));break
+                        case 5: $(this).text($('#d0hex').val()); break;
+                        case 6: $(this).text($('#d1hex').val()); break;
+                        case 7: $(this).text($('#d2hex').val()); break;
+                        case 8: $(this).text($('#d3hex').val()); break;
+                        case 9: $(this).text($('#d4hex').val()); break;
+                        case 10: $(this).text($('#d5hex').val()); break;
+                        case 11: $(this).text($('#d6hex').val()); break;
+                        case 12: $(this).text($('#d7hex').val()); break;
+                    }
+                })
+
+                var sum = 0;
+                for (var i = 2; i < 14; i++)
+                {
+                    sum += parseInt($('table.frame-preview td:nth-child('+i+')').text(), 16)
+                }
+
+                $('table.frame-preview td:nth-child(14)').text(('00'+sum.toString(16)).substr(-2))
+            }
+
+            var frameTypeOptions = '';
+            for(var i = 0; i < hapcanFrames.length; i++){
+                if(hapcanFrames[i].type === 'divider')
+                    frameTypeOptions += '<li class="divider"></li>'
+                else if(hapcanFrames[i].type === 'header')
+                    frameTypeOptions += `<li class="dropdown-header">${hapcanFrames[i].name}</li>`
+                else
+                    frameTypeOptions += `<li><a href="#" data-frame-type="${hapcanFrames[i].type}"><i class="fa ${hapcanFrames[i].icon}"></i> ${hapcanFrames[i].name} <span>${hapcanFrames[i].type}</span></a></li>`
+            }
+
+            $('#hapcan-frames').append(frameTypeOptions)
+            $('#hapcan-frames a').each(function(){
+                $(this).click(function(){
+                    var frameType = $(this).attr('data-frame-type')
+                    for(let i= 0; i < hapcanFrames.length; i++){
+                    if( hapcanFrames[i].type === frameType)
+                    {
+                        $('#frame-type').val(frameType)
+                        updateFrameTypeName()
+
+                        if(hapcanFrames[i].compNode !== undefined )
+                            $('#node-input-node option').removeProp('selected').filter(`[value=${hapcanFrames[i].compNode}]`).prop('selected', true).trigger('change')
+                        if(hapcanFrames[i].compGroup !== undefined )
+                            $('#node-input-group option').removeProp('selected').filter(`[value=${hapcanFrames[i].compGroup}]`).prop('selected', true).trigger('change')
+
+                        $('.databytes .property-name').each(function(j){
+                            $(this).val(hapcanFrames[i].frame[j][0])
+                            $(this).next().val(hapcanFrames[i].frame[j][1]).trigger('change')
+                        })
+                        break
+                    }
+                }
+
+                })
+            })
+
+            var frameTypeMenuTracker = function (event) {
+
+                var e = $(event.target);
+                if (($(e).attr('id') !== 'frame-type-dropdown-menu-button') && $(e).parents('#frame-type-dropdown-menu-button').length < 1) {
+                    $('#hapcan-frames').css("display", 'none')
+                    $(document).off('click', frameTypeMenuTracker)
+                }
+            }
+
+            $('#frame-type-dropdown-menu-button').click(function () {
+                if ($('#hapcan-frames').css("display") === 'none') {
+                    $('#hapcan-frames').css("display", 'block')
+                    $(document).on('click', frameTypeMenuTracker)
+                }
+                else {
+                    $('#hapcan-frames').css("display", 'none')
+                    $(document).off('click', frameTypeMenuTracker)
+                }
+            })
+            
+            function updateFrameTypeName(){
+                var val = $('#frame-type').val().toUpperCase()
+
+                var frameName = 'custom frame'
+
+                for(let i= 0; i < hapcanFrames.length; i++){
+                    if( hapcanFrames[i].type === val)
+                    {
+                        frameName = `<i class="fa ${hapcanFrames[i].icon}"></i> ${hapcanFrames[i].name}`
+                        break
+                    }
+                }
+                $('#frame-type-name').html(frameName)
+            }
+            
+            $('.property-value-hex').each(function(){
+                $(this).keypress(function(event) {
+                    var regex = new RegExp("^[a-fA-F0-9]+$");
+                    var key = String.fromCharCode(!event.charCode ? event.which : event.charCode);
+                    if (!regex.test(key)) {
+                        event.preventDefault();
+                        return false;
+                    }
+                })
+                $(this).on("change paste keyup", function(){
+                    $(this).next().val(parseInt($(this).val(), 16))
+
+                    updateFrameTypeName()
+                    computePreview();
+                })
+
+                $(this).on("change", function(){
+                    var max = Number($(this).attr('maxlength'))
+                    var val = ('000' + $(this).val()).substr(-1*max) 
+                    $(this).val(val)
+
+                    updateFrameTypeName()
+                    computePreview();
+                })                
+            })
+
+            
+            $('.databytes .property-value-dec').each(function(){
+                $(this).on("change paste keyup", function(){
+                    if(Number($(this).val()) < 0 )
+                        $(this).val('0')
+                    if(Number($(this).val()) > 255 )
+                        $(this).val('255')
+                    $(this).prev().val(('00'+Number(($(this).val())).toString(16)).substr(-2))
+
+                    computePreview();
+                })                
+                $(this).keypress(function(event) {
+                    var regex = new RegExp("^[0-9]+$");
+                    var key = String.fromCharCode(!event.charCode ? event.which : event.charCode);
+                    if (!regex.test(key)) {
+                        event.preventDefault();
+                        return false;
+                    }
+                })
+            })
+        },
+        oneditsave: function(){
+            this.frameType = parseInt($('#frame-type').val(), 16);
+        }
+        });
+</script>
+
+<script type="text/x-red" data-template-name="custom-output">
+    <style>
+        .databytes .property-name {
+            width: 35% !important;
+        }
+        .databytes .property-value-hex {
+            width: 40px !important;
+            text-transform:uppercase;
+            text-align: center;
+        }
+
+        #frame-type {
+            width: 60px;
+            text-transform:uppercase;
+            text-align: center;
+            margin-right: 0;
+            border-bottom-right-radius: 0px;
+            border-top-right-radius: 0px;
+            border-right: none;
+        }
+     
+        .databytes .property-value-dec {
+            width: 50px !important;
+            text-align: right;
+        }
+        table.frame-preview {
+            width: 100%;
+            background-color: #bbb;
+            border-spacing: 2px;
+            border-collapse: separate;
+            text-align: center;
+        }
+        .frame-preview td {
+            padding: 4px 2px;
+            background-color: #eee;
+            width: 6%;
+            text-transform:uppercase;
+        }
+        .frame-preview td.const {
+            background-color: #ddd;
+        }
+        .frame-preview td.data {
+            background-color: #fafafa;
+        }
+
+        .frame-type-container {
+            position: relative;
+        }
+
+        .frame-type-container .dropbtn {
+            display: inline-block;
+            color: black;
+            text-align: center;
+            padding: 5px 8px;
+            text-decoration: none;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            margin-left: 0;
+            border-radius: 0px 4px 4px 0px;
+            height: 22px;
+        }
+        
+        #hapcan-frames .dropdown-header {
+            opacity: 0.6;
+            padding: 4px;
+            background-color: #ddd;
+        }
+
+        #hapcan-frames a span {
+            color: #888;
+            margin: auto 8px auto 20px;
+            float: right;
+        }        
+    </style>
+
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-desktop"></i> Sender node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-th"></i> Sender group</label>
+        <select id="node-input-group"></select>
+    </div>
+
+    <hr>
+
+    <div class="form-row frame-type-container">
+        <label for="frameType"><i class="fa fa-window-maximize"></i> Frame type</label>
+        <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX"><a href="#" id="frame-type-dropdown-menu-button" class="dropbtn" ><i class="fa fa-caret-down"></i></a>
+        <ul id="hapcan-frames" class="red-ui-menu-dropdown" style="width: auto !important;">
+        </ul>
+        <span id="frame-type-name">custom frame</span>
+    </div>
+
+    <div class="databytes">
+        <div class="form-row">
+            <label for="node-input-d0name"><i class="fa fa-cube"></i> D0</label>
+            <input class="property-name" type="text" id="node-input-d0name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d0hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d0value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d1name"><i class="fa fa-cube"></i> D1</label>
+            <input  class="property-name" type="text" id="node-input-d1name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d1hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d1value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d2name"><i class="fa fa-cube"></i> D2</label>
+            <input class="property-name" type="text" id="node-input-d2name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d2hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d2value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d3name"><i class="fa fa-cube"></i> D3</label>
+            <input class="property-name" type="text" id="node-input-d3name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d3hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d3value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d4name"><i class="fa fa-cube"></i> D4</label>
+            <input class="property-name" type="text" id="node-input-d4name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d4hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d4value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d5name"><i class="fa fa-cube"></i> D5</label>
+            <input class="property-name" type="text" id="node-input-d5name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d5hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d5value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d6name"><i class="fa fa-cube"></i> D6</label>
+            <input class="property-name" type="text" id="node-input-d6name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d6hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d6value" placeholder="dec">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d7name"><i class="fa fa-cube"></i> D7</label>
+            <input class="property-name" type="text" id="node-input-d7name" placeholder="property name">
+            <input class="property-value-hex" type="text" maxlength="2" id="d7hex" placeholder="hex">
+            <input class="property-value-dec" type="text" maxlength="3" id="node-input-d7value" placeholder="dec">
+        </div>
+    </div>
+
+    <div class="form-row">
+        <table class="frame-preview">
+            <tr>
+                <td class="const">AA</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="data"></td>
+                <td class="const"></td>
+                <td class="const">A5</td>
+            </tr>
+        </table>
+        
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="custom-output">
+    <p>Node send any of the Hapcan's and Hapcan's compatible modules messages.</p>
+    <p>It can be used to control any Hapcan's device. It uses the Ethernet gateway to communicate with Hapcan bus.</p>
+    
+    <h3>Configuration</h3>
+    <p>    
+        <ul>
+            <li><b>Sender node</b> is the message sender node number. Some of the low level programming messages using this value to adress a device being programmed.</li>
+            <li><b>Sender group</b> is the message sender group number. Some of the low level programming messages using this value to adress a device being programmed.</li>
+            <li><b>Frame type</b> is the hex frame identifier that gives meaning to the data being sent. You can type any number here, but when the node recognizes any of the Hapcan's specific frame type
+            it displays its short description on the right side. For example, frame type 0x10A is the node control direct message. It is good practise to stick with Hapcan frames type system, so any hapcan monitor can also recognize 
+            the frames. <br>
+            You can use it to control any of the device - for example one does not have its own dedicated output node. It is also a warning message when You put some system defined frame type by mistake - which can cause some unexpected results when data is not correct.</li>
+            <br>
+            There is also a preset dropdown menu, so You can prepare hapcan's frames quickly. But in most cases You will be using a `0x10A` frame which is <b>execute node instruction</b> frame.
+            <li><b>D[0-7] fields</b> represents 8 frame data bytes. You can name each byte just for clarity, but this names can also be used as an input message properties which will override
+            default values set in configuration. Next two fields are the default data byte values, one in hex, one in decimal system (just for Your comfort :) ). Editing one will automatically compute value in other system.</li>
+            <li><b>Frame preview</b> below is the read only frame visualisation that reflects node configuration.</li>
+        </ul>
+    </p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">any | object</span></dt>
+        <dd>Any input message will send configured message to the hapcan bus. If topic is set to <i>control</i> the payload can override the default configuration data values.</dd>
+
+        <dt class="optional">topic <span class="property-type">string</span></dt>
+        <dd>Topic is optional. When a <i>control</i> value is provided the payload will be used to override the default configuration data values.</dd>
+    </dl>
+    
+    <h3>Details</h3>
+    <p>The default node behaviour on any input message is to send message (hapcan frame) specified in the node properties. 
+        When <code>msg.topic</code> is set to <i>control</i> then the input value will override properties defined in the node configuration.
+        <b>Be warned</b>, that You are responsible for sending proper frames to Hapcan bus. Sending incorrect farmes can cause in unpredictable results, like device reboot or switch 
+        it to the programming mode. You should follow the device firmware instructions.
+    </p>
+
+    <h3>Control object definition</h3>
+    <p>
+        Passing the <i>object</i> (JSON) in <code>msg.payload</code> allows frame data overriding. The list of possible fields names is up to You and is 
+        configured by defining data bytes names. For example, when You name byte <code>D1</code> as <code>channel</code>, then the node will search in the message payload for
+        <code>channel</code> property and put its value to the sending frame instead of the default one.
+
+    </p>
+    <dl class="message-properties">
+        <dt><i>property_name</i> <span class="property-type">number|srting</span></dt> 
+        <dd>Each property name of Your choice can be either integer as a number or string. Note that values has to be in 0-255 range and will be truncated
+            to this values if larger or smaller values will be provided.
+        </dd>
+    </dl>
+    
+    <h3>References</h3>
+    <ul>
+        <li><a href="https://hapcan.com/">Hapcan modules</a></li>
+    </ul>
+
+</script>
+
+
+
+<script type="text/javascript">
+    RED.nodes.registerType('custom-input',{
+        category: 'hapcan',
+        color: '#D3D3D3',
+        defaults: {
+            gateway: {type:"hapcan-gateway", required: true},
+            name: {value:""},
+            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
+            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            frameTypeFilter: {value: 0},
+            d0name: {value:''},
+            d1name: {value:''},
+            d2name: {value:''},
+            d3name: {value:''},
+            d4name: {value:''},
+            d5name: {value:''},
+            d6name: {value:''},
+            d7name: {value:''},
+        },
+        inputs:0,
+        outputs:1,
+        icon: "relay-output.png",
+        align: 'left',
+        label: function() {
+            let filter = ''
+            if( Number(this.frameTypeFilter) !== 0 )
+                filter = ' [0x'+ ('000'+ (this.frameTypeFilter.toString(16))).substr(-3) + ']'
+
+            return (this.name||"custom input") + ' ('+this.node+','+this.group+')' + filter;
+        },
+        labelStyle: function() { return this.name?"node_label_italic":""; } ,
+        oneditprepare: async function() {
+            let config = this
+            const hapcanFrames = [
+                    { type: "header", icon: "",                     name: "Common",                             frame: [] },
+                    { type: "000", icon: "fa-align-justify",        name: "any frame type (filter disabled)",   frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "header", icon: "",                     name: "System frames",                      frame: [] },
+                    { type: "030", icon: "fa-warning",              name: "programming address frame",          frame: [['d0','FF'],['d1','FF'],['d2','FF'],['d3','FF'],['d4','FF'],['d5','FF'],['d6','FF'],['d7','FF']] },
+                    { type: "040", icon: "fa-warning",              name: "programming data frame (write)",     frame: [['d0','FF'],['d1','FF'],['d2','FF'],['d3','FF'],['d4','FF'],['d5','FF'],['d6','FF'],['d7','FF']] },
+                    { type: "0F0", icon: "fa-exclamation-circle",   name: "error frame",                        frame: [['','FF'],['','FF'],['bVer1','FF'],['bVer2','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "100", icon: "fa-fire",                 name: "node entered programming mode",      frame: [['','FF'],['','FF'],['bVer1','FF'],['bVer2','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "103", icon: "fa-question-circle",      name: "group serial numbers response",      frame: [['hard1','FF'],['hard2','FF'],['hVer','FF'],['','FF'],['id0','FF'],['id1','FF'],['id2','FF'],['id3','FF']] },
+                    { type: "104", icon: "fa-question-circle",      name: "node serial number response",        frame: [['hard1','FF'],['hard2','FF'],['hVer','FF'],['','FF'],['id0','FF'],['id1','FF'],['id2','FF'],['id3','FF']] },
+                    { type: "105", icon: "fa-question-circle",      name: "group firmware response",            frame: [['hard1','FF'],['hard2','FF'],['hVer','FF'],['aType','FF'],['aVer','FF'],['fVer','FF'],['bVer1','FF'],['bVer2','FF']] },
+                    { type: "106", icon: "fa-question-circle",      name: "node firmware response",             frame: [['hard1','FF'],['hard2','FF'],['hVer','FF'],['aType','FF'],['aVer','FF'],['fVer','FF'],['bVer1','FF'],['bVer2','FF']] },
+                    { type: "107", icon: "fa-warning",              name: "node default ID set",                frame: [['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10B", icon: "fa-bolt",                 name: "group power supply voltage response",frame: [['volBus1','FF'],['volBus2','FF'],['volCpu1','00'],['volCpu2','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10C", icon: "fa-bolt",                 name: "node power supply voltage response", frame: [['volBus1','FF'],['volBus2','FF'],['volCpu1','00'],['volCpu2','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "10D", icon: "fa-font",                 name: "group description response",         frame: [['abc0_8','FF'],['abc1_9','FF'],['abc2_10','00'],['abc3_11','FF'],['abc4_12','FF'],['abc5_13','FF'],['abc6_14','FF'],['abc7_15','FF']] },
+                    { type: "10E", icon: "fa-font",                 name: "node description response",          frame: [['abc0_8','FF'],['abc1_9','FF'],['abc2_10','00'],['abc3_11','FF'],['abc4_12','FF'],['abc5_13','FF'],['abc6_14','FF'],['abc7_15','FF']] },
+                    { type: "10F", icon: "fa-microchip",            name: "group processor ID response",        frame: [['devId1','FF'],['devId2','FF'],['','00'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "111", icon: "fa-microchip",            name: "node processor ID response",         frame: [['devId1','FF'],['devId2','FF'],['','00'],['','FF'],['','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "112", icon: "fa-clock-o",              name: "group uptime response",              frame: [['','FF'],['','FF'],['','FF'],['','FF'],['uptime3','FF'],['uptime2','FF'],['uptime1','FF'],['uptime0','FF']] },
+                    { type: "113", icon: "fa-clock-o",              name: "node uptime response",               frame: [['','FF'],['','FF'],['','FF'],['','FF'],['uptime3','FF'],['uptime2','FF'],['uptime1','FF'],['uptime0','FF']] },
+                    { type: "114", icon: "fa-heartbeat",            name: "group health check response",        frame: [['frame','FF'],['rxCnt','FF'],['txCnt','FF'],['RxCntMx_RxcntMxE','FF'],['TxCntMx_TxCntMxE','FF'],['CanIntCnt_CanIntCntE','FF'],['RxErrCnt_RxErrCntE','FF'],['TxErrCnt_TxErrCntE','FF']] },
+                    { type: "115", icon: "fa-heartbeat",            name: "node health check response",         frame: [['frame','FF'],['rxCnt','FF'],['txCnt','FF'],['RxCntMx_RxcntMxE','FF'],['TxCntMx_TxCntMxE','FF'],['CanIntCnt_CanIntCntE','FF'],['RxErrCnt_RxErrCntE','FF'],['TxErrCnt_TxErrCntE','FF']] },
+                    { type: "1F1", icon: "fa-frown-o",              name: "incorrect firmware",                 frame: [['firFlags','FF'],['fSum2','FF'],['fSum1','FF'],['fSum0','FF'],['','FF'],['','FF'],['bVer1','FF'],['bVer2','FF']] },
+                    { type: "header", icon: "",                     name: "Devices status frames",              frame: [] },
+                    { type: "300", icon: "fa-clock-o",              name: "real time clock status",             frame: [['','FF'],['year','19'],['month','01'],['date','01'],['day','01'],['hour','00'],['min','00'],['sec','00']] },
+                    { type: "301", icon: "fa-hand-o-down",          name: "button status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['led','FF'],['','FF'],['','FF'],['','FF']] },
+                    { type: "302", icon: "fa-power-off",            name: "relay status",                       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "303", icon: "fa-feed",                 name: "ir receiver status",                 frame: [['','FF'],['','FF'],['codeType','FF'],['code1','FF'],['code2','FF'],['code3','FF'],['','FF'],['','FF']] },
+                    { type: "304", icon: "fa-thermometer-half",     name: "temperature status",                 frame: [['','FF'],['','FF'],['dataType','11'],['tempMsb','FF'],['tempLsb','FF'],['setPoMsb','FF'],['setPoLsb','FF'],['hyster','FF']] },
+                    { type: "306", icon: "fa-lightbulb-o",          name: "dimmer status",                      frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "307", icon: "fa-bars",                 name: "blind controller status",            frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['move','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "308", icon: "fa-stop-circle-o",        name: "RGB LED controller status",          frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['relay','FF'],['instr1','FF'],['instr2','FF'],['timer','FF']] },
+                    { type: "309", icon: "fa-external-link",        name: "open collector output status",       frame: [['','FF'],['','FF'],['channel','FF'],['status','FF'],['','FF'],['instr1','FF'],['','FF'],['timer','FF']] }
+            ]
+
+            function updateFrameTypeName(){
+                var val = $('#frame-type').val().toUpperCase()
+
+                var frameName = 'custom frame type'
+                for(let i= 0; i < hapcanFrames.length; i++){
+                    if( hapcanFrames[i].type === val)
+                    {
+                        frameName = `<i class="fa ${hapcanFrames[i].icon}"></i> ${hapcanFrames[i].name}`
+                        break
+                    }
+                }
+
+                $('#frame-type-name').html(frameName)
+            }
+
+            var nodeOptions = '';
+            var groupOptions = '';
+            var devicesOptions = null
+            
+            var gatewaySelect = $('#node-input-gateway')
+            var devicesSelect = $("#node-input-devices")
+            var nodeSelect =  $("#node-input-node")
+            var groupSelect =  $("#node-input-group")
+            var currentDevice = null
+                
+            var deviceList = []
+            gatewaySelect.change(function()
+            {
+                devicesOptions = ''
+                var selectedGatewayId = gatewaySelect.children('option[selected]').first().val()
+                if(selectedGatewayId == null)
+                    selectedGatewayId = gatewaySelect.children("option").first().val()
+                var gateway = RED.nodes.node(selectedGatewayId)
+                if(gateway !== null )
+                {
+                    deviceList = gateway.devices.filter((d) => true)
+                    deviceList.forEach( (device) => {
+                        var selected = '';
+                        if(Number(config.node) === device.node && Number(config.group) === device.group)
+                        {
+                            selected = 'selected="selected"'
+                            currentDevice = device
+                        }
+                        devicesOptions += `<option ${selected} value="${device.id}">${device.description} (${device.node},${device.group})</option>`
+                    })
+                }
+                devicesOptions += `<option ${currentDevice === null ? 'selected="selected"' : ''} value="0">(set node, group manually)</option>`
+
+                devicesSelect.empty().append(devicesOptions).trigger('change')
+            })
+            
+            devicesSelect.on('change', function() {
+                
+                if(Number(this.value) === 0)
+                {
+                    nodeSelect.removeAttr('disabled')
+                    groupSelect.removeAttr('disabled')
+                }
+                currentDevice = deviceList.find(v=>v.id === this.value)
+                
+                if(currentDevice !== undefined) {
+                    nodeSelect.find('option').removeProp('selected').filter(`[value=${currentDevice.node}]`).prop('selected', true).trigger('change')
+                    groupSelect.find('option').removeProp('selected').filter(`[value=${currentDevice.group}]`).prop('selected', true).trigger('change')
+                    nodeSelect.attr('disabled', 'disabled')
+                    groupSelect.attr('disabled', 'disabled')
+                }
+            })
+            
+            for(var i = 1; i < 256; i++)
+            {
+                var selectedNode = '';
+                if((Number(this.node) === i))
+                    selectedNode = 'selected="selected"';
+                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+
+                var selectedGroup = '';
+                if((Number(this.group) === i))
+                    selectedGroup = 'selected="selected"';
+                
+                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+            }
+            
+            nodeSelect.append(nodeOptions);
+            groupSelect.append(groupOptions);
+
+            $('#frame-type').val( ('000'+this.frameTypeFilter.toString(16)).substr(-3) ) 
+            updateFrameTypeName()
+
+            var frameTypeOptions = '';
+            for(var i = 0; i < hapcanFrames.length; i++){
+                if(hapcanFrames[i].type === 'divider')
+                    frameTypeOptions += '<li class="divider"></li>'
+                else if(hapcanFrames[i].type === 'header')
+                    frameTypeOptions += `<li class="dropdown-header">${hapcanFrames[i].name}</li>`
+                else
+                    frameTypeOptions += `<li><a href="#" data-frame-type="${hapcanFrames[i].type}"><i class="fa ${hapcanFrames[i].icon}"></i> ${hapcanFrames[i].name} <span>${hapcanFrames[i].type}</span></a></li>`
+            }
+            $('#hapcan-frames').append(frameTypeOptions)
+            $('#hapcan-frames a').each(function(){
+                $(this).click(function(){
+                    var frameType = $(this).attr('data-frame-type')
+                    for(let i= 0; i < hapcanFrames.length; i++){
+                    if( hapcanFrames[i].type === frameType)
+                    {
+                        $('#frame-type').val(frameType)
+                        updateFrameTypeName()
+
+                        if(hapcanFrames[i].compNode !== undefined )
+                            $('#node-input-node option').removeProp('selected').filter(`[value=${hapcanFrames[i].compNode}]`).prop('selected', true).trigger('change')
+                        if(hapcanFrames[i].compGroup !== undefined )
+                            $('#node-input-group option').removeProp('selected').filter(`[value=${hapcanFrames[i].compGroup}]`).prop('selected', true).trigger('change')
+
+                        $('.databytes .property-name').each(function(j){
+                            $(this).val(hapcanFrames[i].frame[j][0])
+                        })
+                        break
+                    }
+                }
+
+                })
+            })
+
+            var frameTypeMenuTracker = function(event){
+                var e = $(event.target);
+                if(($(e).attr('id')!=='frame-type-dropdown-menu-button') && $(e).parents('#frame-type-dropdown-menu-button').length < 1) { 
+                    $('#hapcan-frames').css("display", 'none')
+                    $(document).off('click', frameTypeMenuTracker)
+                }
+            }
+
+            $('#frame-type-dropdown-menu-button').click(function(){
+                if( $('#hapcan-frames').css("display") === 'none' )
+                {
+                    $('#hapcan-frames').css("display", 'block')
+                    $(document).on('click', frameTypeMenuTracker)
+                }
+                else
+                {
+                    $('#hapcan-frames').css("display", 'none')
+                    $(document).off('click', frameTypeMenuTracker)
+                }
+            })
+
+            $('.property-value-hex').each(function(){
+                $(this).keypress(function(event) {
+                    var regex = new RegExp("^[a-fA-F0-9]+$");
+                    var key = String.fromCharCode(!event.charCode ? event.which : event.charCode);
+                    if (!regex.test(key)) {
+                        event.preventDefault();
+                        return false;
+                    }
+                })
+                $(this).on("change paste keyup", function(){
+                    updateFrameTypeName()
+                })
+
+                $(this).on("change", function(){
+                    var max = Number($(this).attr('maxlength'))
+                    var val = ('000' + $(this).val()).substr(-1*max) 
+                    $(this).val(val)
+
+                    updateFrameTypeName()
+                })                
+            })
+
+        },
+        oneditsave: function(){
+            this.frameTypeFilter = parseInt($('#frame-type').val(), 16)
+        }
+        });
+
+</script>
+
+<script type="text/x-red" data-template-name="custom-input">
+    <style>
+
+        .databytes .property-name {
+            width: 23%;
+        }
+
+        #frame-type {
+            width: 60px;
+            text-transform:uppercase;
+            text-align: center;
+            margin-right: 0;
+            border-bottom-right-radius: 0px;
+            border-top-right-radius: 0px;
+            border-right: none;
+        }
+
+        .frame-type-container {
+            position: relative;
+        }
+
+        .frame-type-container .dropbtn {
+            display: inline-block;
+            color: black;
+            text-align: center;
+            padding: 5px 8px;
+            text-decoration: none;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            margin-left: 0;
+            border-radius: 0px 4px 4px 0px;
+            height: 22px;
+        }
+
+        #hapcan-frames .dropdown-header {
+            opacity: 0.6;
+            padding: 4px;
+            background-color: #ddd;
+        }
+
+        #hapcan-frames a span {
+            color: #888;
+            margin: auto 8px auto 20px;
+            float: right;
+        }
+      
+    </style>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Device name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-gateway"><i class="fa fa-globe"></i> Gateway</label>
+        <input type="text" id="node-input-gateway" placeholder="Gateway">
+    </div>
+    <div class="form-row">
+        <label for="node-input-devices"><i class="fa fa-microchip"></i> Device</label>
+        <select id="node-input-devices"></select>
+    </div>    
+    <div class="form-row">
+        <label for="node-input-node"><i class="fa fa-cube"></i> Node</label>
+        <select id="node-input-node"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-group"><i class="fa fa-cubes"></i> Group</label>
+        <select id="node-input-group"></select>
+    </div>
+
+    <div class="form-row frame-type-container">
+            <label for="frameType"><i class="fa fa-window-maximize"></i> Frame filter</label>
+            <input class="property-value-hex" type="text" maxlength="3" id="frame-type" placeholder="HEX"><a href="#" id="frame-type-dropdown-menu-button" class="dropbtn"><i class="fa fa-caret-down"></i></a>
+            <ul id="hapcan-frames" class="red-ui-menu-dropdown" style="width: auto !important;">
+            </ul>
+            <span id="frame-type-name"> receive any frame type</span>
+    </div>
+
+    <hr>
+
+    <div class="databytes">
+        <div class="form-row">
+            <label for="node-input-d0name"><i class="fa fa-cube"></i> D0</label>
+            <input class="property-name" type="text" id="node-input-d0name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d1name"><i class="fa fa-cube"></i> D1</label>
+            <input class="property-name" type="text" id="node-input-d1name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d2name"><i class="fa fa-cube"></i> D2</label>
+            <input class="property-name" type="text" id="node-input-d2name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d3name"><i class="fa fa-cube"></i> D3</label>
+            <input class="property-name" type="text" id="node-input-d3name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d4name"><i class="fa fa-cube"></i> D4</label>
+            <input class="property-name" type="text" id="node-input-d4name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d5name"><i class="fa fa-cube"></i> D5</label>
+            <input class="property-name" type="text" id="node-input-d5name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d6name"><i class="fa fa-cube"></i> D6</label>
+            <input class="property-name" type="text" id="node-input-d6name" placeholder="property name">
+        </div>
+        <div class="form-row">
+            <label for="node-input-d7name"><i class="fa fa-cube"></i> D7</label>
+            <input class="property-name" type="text" id="node-input-d7name" placeholder="property name">
+        </div>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="custom-input">
+    <p>Receives any Hapcan messages.</p>
+    <p>The node emit all messages received from device. It uses the Ethernet gateway to receive messages from Hapcan bus.</p>
+    
+    <h3>Configuration</h3>
+    <p>    
+        <ul>
+            <li><b>Node</b> - device address, node will emit only this device frames.</li>
+            <li><b>Group</b> - device group address, node will emit only this device frames.</li>
+            <li><b>Frame filter</b> is the hex frame identifier that the node will be listen to. You can type any number here, but when the node recognizes any of the Hapcan's specific frame type
+            it displays its short description on the right side. For example, frame type 0x301 is the node button module status message. It is good practise to stick with Hapcan frames type system, so any hapcan monitor can also recognize 
+            the frames. <br>
+            You can disable filter by putting valu of 0x000 as a filter.
+            <br>
+            There is also a preset dropdown menu, so You can prepare hapcan's frames quickly. The data bytes will be named accordingly to the Hapcan modules frames described in the manual, and the node
+            will emit message with this properties existing in the payload.
+            <li><b>D[0-7] fields</b> represents 8 frame data bytes. You can name each byte just for clarity, but this names will be also emitted with message payload.</li>
+        </ul>
+        </p>    
+    <h3>Output</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">object</span></dt>
+        <dd>Hapcan message object with frame data.</dd>
+    </dl>
+    
+
+    <h3>Details</h3>
+    <p>The <code>msg.payload</code> contains:
+    </p>
+    <dl class="message-properties">
+        <dt>frame <span class="property-type">Buffer[15]</span></dt>
+        <dd>15 bytes buffer containing raw Hapcan's CAN frame.</dd>
+
+        <dt>frameType <span class="property-type">number</span></dt>
+        <dd>Hapcan frame type number (decimal)</dd>
+
+        <dt>isAnswer <span class="property-type">bool</span></dt>
+        <dd><i>True</i> if message is an answer for request.</dd>
+        
+        <dt>node <span class="property-type">number</span></dt>
+        <dd>Sender module node number.</dd>
+
+        <dt>group <span class="property-type">number</span></dt>
+        <dd>Sender module group number.</dd>
+
+        <dt><i>D[0-7] property_name</i> <span class="property-type">number</span></dt> 
+        <dd>Each data byte with property name provided will be attached to the payload message. Note that values are in 0-255 range and it is a raw representation of the data.
+    </dl>
+    <p>
+        It is important that the properties emitted within message payload are just raw byte values. The node will not decode the value meaning, for example when You receive a 
+        real time status message <code>0x300</code> there will be correct names like hour, minute, seconds, but the data will be provided as is in BCD format. If You want the data
+        to be in correct values You have to compute it Yourself or just use dedicated RTC input node, which does the required translations on raw data bytes.
+    </p>
+
+    <h3>References</h3>
+    <ul>
+        <li><a href="https://hapcan.com/">Hapcan modules</a></li>
+    </ul>    
+    
+</script>

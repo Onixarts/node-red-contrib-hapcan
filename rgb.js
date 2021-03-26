@@ -14,26 +14,13 @@ module.exports = function(RED) {
         if( node.UNIV == undefined)
             node.UNIV = 3;   
         
-        node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + ("00" + node.channel).slice (-3)+'_';
+        this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
+        node.gateway.eventEmitter.on('statusChanged', function(data){
+            node.status(data)
+        })
 
-        if(node.gateway)
-        {
-            node.gateway.register(node);
-        }
-        else
-        {
-            node.error('Invalid configuration. Gateway is required.'); 
-        }
-
-        this.on('close', function(done) {
-            if (node.gateway) {
-                node.gateway.deregister(node,done);
-            }
-        });
-
-        node.on('input', function(msg) {
+        node.on('input', function(msg, send, done) {
             
             var control = { 
                 channel: Number(node.channel), 
@@ -62,7 +49,7 @@ module.exports = function(RED) {
                         }
                         else
                         {
-                            node.error('Invalid speed type: '+ typeof msg.payload.speed); 
+                            done('Invalid speed type: '+ typeof msg.payload.speed); 
                             return;
                         }
                     }
@@ -71,7 +58,7 @@ module.exports = function(RED) {
                         control.channel = 0;
                         if(typeof msg.payload.channel === 'number')
                         {
-                            if(!isChannelValid(msg.payload.channel))
+                            if(!isChannelValid(msg.payload.channel, done))
                                 return;
                             control.channel = msg.payload.channel;
                         }
@@ -84,34 +71,31 @@ module.exports = function(RED) {
                                 case "BLUE": control.channel = 0x03; break;
                                 case "MASTER": control.channel = 0x04; break;
                                 default: 
-                                    node.error('Invalid channel name value: '+ msg.payload.channel); 
+                                    done('Invalid channel name value: '+ msg.payload.channel); 
                                     return;
                             }
                         }
                         if( msg.payload.hasOwnProperty('state'))
                         {
-                            if(!parseAction(msg.payload.state, control))
+                            if(!parseAction(msg.payload.state, control, done))
                                 return;
                         }                        
                         else
                         {
-                            node.error('Invalid channel type: '+ typeof msg.payload.channel); 
+                            done('Invalid channel type: '+ typeof msg.payload.channel); 
                             return;
                         }
                     }
                 }
                 else
                 {
-                    if(!parseAction(msg.payload, control))
+                    if(!parseAction(msg.payload, control, done))
                         return;
                 }
             }
 
-            if( !isChannelValid(control.channel))
-            {
-                node.error('Invalid channel: ' + control.channel);
+            if( !isChannelValid(control.channel, done))
                 return;
-            }
 
             if( control.sendSpeedMessage)
                 control.sendSpeedMessage = control.speed > 0;
@@ -163,20 +147,21 @@ module.exports = function(RED) {
             msg.payload = hapcanMsg;
             msg.topic = 'control';
             node.gateway.send(msg);
+            done()
         });
         this.on('close', function() {
             // tidy up any state
         });
 
-        function isChannelValid(channel)
+        function isChannelValid(channel, done)
         {
             var isValid = (channel >= 1 && channel <= 4);
             if(!isValid)
-                node.error('Invalid channel: '+ channel);
+                done('Invalid channel: '+ channel);
             return isValid;
         }
 
-        function parseAction(value, control)
+        function parseAction(value, control, done)
         {
             if(typeof value === "string" )
             {
@@ -200,7 +185,7 @@ module.exports = function(RED) {
                                 control.sendSpeedMessage = false;
                                 break;                                
                     default:
-                        node.error('Invalid action string: '+ value);
+                        done('Invalid action string: '+ value);
                     return false;
                 }
             }
@@ -208,7 +193,7 @@ module.exports = function(RED) {
             {
                 if(value < 0 || value > 255)
                 {
-                    node.error('Invalid state number value: '+ value);
+                    done('Invalid state number value: '+ value);
                     return false;
                 }
                 control.state = value;
@@ -235,25 +220,12 @@ module.exports = function(RED) {
         node.userFieldStateON = config.userFieldStateON;
         node.userFieldStateOFF = config.userFieldStateOFF;
         
-        node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) + '_';
+        this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
-
-        if(node.gateway)
-        {
-            node.gateway.register(node);
-        }
-        else
-        {
-            node.error('Invalid configuration. Gateway is required.'); 
-        }
-
-        this.on('close', function(done) {
-            if (node.gateway) {
-                node.gateway.deregister(node,done);
-            }
-        });
-
+        node.gateway.eventEmitter.on('statusChanged', function(data){
+            node.status(data)
+        })
+        
         node.gateway.eventEmitter.on('messageReceived_308', function(data){
             
             var hapcanMessage = data.payload;

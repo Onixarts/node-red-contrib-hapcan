@@ -8,26 +8,14 @@ module.exports = function(RED) {
         node.node = config.node;
         node.name = config.name;
         node.delay = config.delay;
-        node.hapcanId = ("00" + node.node).slice (-3) + ("00" + node.group).slice (-3) +'_';
+        
+        this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        this.status({fill: "grey", shape: "dot", text: "not registered to gateway"});
+        node.gateway.eventEmitter.on('statusChanged', function(data){
+            node.status(data)
+        })
 
-        if(node.gateway)
-        {
-            node.gateway.register(node);
-        }
-        else
-        {
-            node.error('Invalid configuration. Gateway is required.');
-        }
-
-        this.on('close', function(done) {
-            if (node.gateway) {
-                node.gateway.deregister(node,done);
-            }
-        });
-
-        node.on('input', function(msg) {
+        node.on('input', function(msg, send, done) {
    
           var control=[];
           control[0] =  { node: Number(node.node),
@@ -92,7 +80,7 @@ module.exports = function(RED) {
 
             }
               
-            sendMessage(control, node, msg);
+            sendMessage(control, node, msg, done);
             
         });
         this.on('close', function() {
@@ -116,7 +104,7 @@ module.exports = function(RED) {
         function sleep(ms){
             return new Promise(resolve => setTimeout(resolve, ms));
         }
-        async function sendMessage(control, node, msg){
+        async function sendMessage(control, node, msg, done){
             for (var i=0; i<control.length; i++){
                 if (control[i].node === 0 ) {
                     var hapcanMsg = Buffer.from([0xAA, 0x10,0x80, 0xF0,0xF0, 0xFF,0xFF, 0x00,control[i].group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);    
@@ -129,6 +117,7 @@ module.exports = function(RED) {
                 await sleep(node.delay);
                 node.gateway.send(msg);
             }
+            done()
         }
     }
     RED.nodes.registerType("state-output",StateOutputNode);

@@ -11,6 +11,16 @@ Nodes are using the [Hapcan ethernet module](http://hapcan.com/devices/universal
 - Hapcan based infrastructure
 - Hapcan ethernet module
 
+# New in version 2.1
+
+Node-red 1.x.x support, includes new output nodes input event registration - which allows to using new Complete Node-red node.
+There are also some visual issues fixes for custom-input and custom-output nodes for Node-red 1.x.x.
+
+Added new button output node, that controls 14 buttons LEDs.
+
+**This version require Node-red version 1.x.x and later and will not work on older versions.**
+
+
 # Instalation
 ## Using NODE-RED installer
 
@@ -37,6 +47,7 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 - **Blind input** receives messages from [blind controller](http://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
 - **Blind output** allows controlling the [blind controller](http://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
 - **Button input** receives messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-1-x-x.htm)
+- **Button output** allows controlling button LEDs [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-1-3-x.htm)
 - **IR input** receive infrared sensor messages from [Infrared receiver and transmitter](http://hapcan.com/devices/universal/univ_3/univ_3-5-0-x/index.htm)
 - **Relay input** receives messages from [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
 - **Relay output** allows controlling the [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
@@ -47,6 +58,8 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 - **State output** helps request Hapcan modules status informations
 - **Temp input** receives temperature messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-4-x-x.htm)
 - **Thermostat input** receives thermostat messages from [button modules](https://hapcan.com/devices/universal/univ_3/univ_3-1-3-x/index.htm)
+- **Custom input** receives any Hapcan's frame data from any module (custom modules included).
+- **Custom output** sends any configured (static) and dynamic (payload) message to Hapcan's bus.
 
 # Usage
 
@@ -65,3 +78,15 @@ You can also control Hapcan module by passing more detailed payload with **topic
 
 You can control the nodes by payload in many ways. For example, let's consider relay output. You can pass string value with "ON", "Off", "Toggle" text (case insensitive) to switch channel selected in node configuration. You can also pass number 0,1,2 (Hapcan module compatible values). You can also pass bool value of true or false, to enable or disable relay - in this case the possible actions are limited to ON and OFF.
 Finally, you can pass object (JSON) where You have full control over node - You can override default settings in configuration then.
+
+Example of RGB output node configuration - it contains each control frame fields for simple use.
+
+![RGB output node](img/rgb-output-node.png)
+
+Thera are also Custom input and output nodes which allows You to send and receive any messages to and from the bus. You can name each data byte as You want. It also has a preset menu, with common Hapcan's messages frames, ready to be used.
+
+![Custom nodes](img/custom-node-configuration.png)
+
+**Discover devices** function allows You to search the Hapcan bus for devices present, and then select them easily in any node configuration instead remember necessity for node and group number for each device.
+
+![Discover devices](img/discover-devices.gif)
