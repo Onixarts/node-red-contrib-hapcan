@@ -1,5 +1,4 @@
 const sinon = require('sinon');
-const EventEmitter = require('events').EventEmitter;
 const { assert } = require("chai");
 const helper = require("node-red-node-test-helper");
 const gatewayNode = require("../hapcan-gateway.js");
@@ -102,8 +101,6 @@ describe('HAPCAN Gateway Node', function () {
 
                 g1.messageReceived(frame);
                 assert(spy.calledOnce);
-                // console.log(spy.lastCall.args[0]);
-                // assert(spy.withArgs(spy.lastCall.args[0]).calledOnce);
 
                 done();
             }
@@ -142,8 +139,6 @@ describe('HAPCAN Gateway Node', function () {
 
                 g1.messageReceived(frame);
                 assert(spy.calledOnce);
-                // console.log(spy.lastCall.args[0]);
-                // assert(spy.withArgs(spy.lastCall.args[0]).calledOnce);
 
                 done();
             }
@@ -153,74 +148,5 @@ describe('HAPCAN Gateway Node', function () {
         });
     });
 
-    // it('should emit event', function (done) {
-    //     helper.load(hapcanNodes, flow, function () {
-    //         const gateway = helper.getNode("g1");
-    //         node.on('send', function () {
-    //             try {
-    //                 node.should.have.property('payload.temp', -127.0);
-    //                 done();
-    //             } catch (err) {
-    //                 done(err);
-    //             }
-    //         });
 
-    //         const frame =
-    //             [
-    //                 0xAA,
-    //                 0x30,
-    //                 0x40,
-    //                 30,
-    //                 7,
-    //                 0xFF,
-    //                 0xFF,
-    //                 0x11,
-    //                 0xF8,
-    //                 0x10,
-    //                 0xFF,
-    //                 0xFF,
-    //                 0xFF,
-    //                 0xA9,
-    //                 0xA5
-    //             ];
-    //         //gateway.debugmode = true;
-    //         //gateway.incommingMessage = frame;
-    //         //gateway.eventEmitter.emit('messageReceived_304');
-    //         node.gateway.eventEmitter.emit('messageReceived_304');
-    //         //gateway.receive(frame);
-    //         //node.receive({ payload: frame });
-    //         // "frameType": 0x304,
-    //         // "isAnswer": false,
-    //         // "node": 30,
-    //         // "group": 7,
-    //         // "type": 17, 11
-    //         // "temp": 3969, // !!! -127.0000
-    //         // "setpoint": 4095.94, // !!! -0.0625
-    //         // "hysteresis": 15.9375 // !!! 16.0000
-    //     });
-    //});
-
-    //   it('should make payload lower case', function (done) {
-    //     var flow = [
-    //       { id: "n1", type: "lower-case", name: "lower-case",wires:[["n2"]] },
-    //       { id: "n2", type: "helper" }
-    //     ];
-    //     helper.load(lowerNode, flow, function () {
-    //       var n2 = helper.getNode("n2");
-    //       var n1 = helper.getNode("n1");
-    //       n2.on("input", function (msg) {
-    //         try {
-    //           msg.should.have.property('payload', 'uppercase');
-    //           done();
-    //         } catch(err) {
-    //           done(err);
-    //         }
-    //       });
-    //       n1.receive({ payload: "UpperCase" });
-    //     });
-    //   });
 });
-
-// setTimeout(function () {
-//     log() // logs out active handles that are keeping node running
-// }, 5000);

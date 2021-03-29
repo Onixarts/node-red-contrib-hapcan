@@ -1,4 +1,3 @@
-// const log = require('why-is-node-running');
 //const should = require("should");
 const sinon = require('sinon');
 const { assert } = require("chai");
@@ -79,18 +78,18 @@ describe('HAPCAN Temperature Node', function () {
             try {
                 inputHelper.on('input', function (msg) {
                     try {
-                        console.log(msg);
                         assert.equal(0x304, msg.payload.frameType);
                         assert.equal(false, msg.payload.isAnswer);
                         assert.equal(30, msg.payload.node);
                         assert.equal(7, msg.payload.group);
                         assert.equal(0x11, msg.payload.type);
                         assert.equal(-127, msg.payload.temp);
-                        // assert.equal(0, msg.payload.setpoint);
-                        // assert.equal(16.0, msg.payload.hysteresis);
+                        assert.equal(-0.0625, msg.payload.setpoint);
+                        assert.equal(16.0, msg.payload.hysteresis);
                         done();
                     }
                     catch (err) {
+                        console.log(msg);
                         done(err);
                     }
                 });
@@ -101,58 +100,4 @@ describe('HAPCAN Temperature Node', function () {
             }
         });
     });
-
-    // it('get temperature 1.0°C', function (done) {
-    //     helper.load(hapcanNodes, flow, function () {
-    //         const gateway = helper.getNode("g1");
-    //         const node = helper.getNode("n1");
-    //         node.on('send', function () {
-    //             try {
-    //                 node.should.have.property('payload.temp', -127.0);
-    //                 done();
-    //             } catch (err) {
-    //                 done(err);
-    //             }
-    //         });
-
-    //         //gateway.debugmode = true;
-    //         //gateway.incommingMessage = frame;
-    //         //gateway.eventEmitter.emit('messageReceived_304');
-    //         node.gateway.eventEmitter.emit('messageReceived_304');
-    //         //gateway.receive(frame);
-    //         //node.receive({ payload: frame });
-    //         // "frameType": 0x304,
-    //         // "isAnswer": false,
-    //         // "node": 30,
-    //         // "group": 7,
-    //         // "type": 17, 11
-    //         // "temp": 3969, // !!! -127.0000
-    //         // "setpoint": 4095.94, // !!! -0.0625
-    //         // "hysteresis": 15.9375 // !!! 16.0000
-    //     });
-    //});
-
-    //   it('should make payload lower case', function (done) {
-    //     var flow = [
-    //       { id: "n1", type: "lower-case", name: "lower-case",wires:[["n2"]] },
-    //       { id: "n2", type: "helper" }
-    //     ];
-    //     helper.load(lowerNode, flow, function () {
-    //       var n2 = helper.getNode("n2");
-    //       var n1 = helper.getNode("n1");
-    //       n2.on("input", function (msg) {
-    //         try {
-    //           msg.should.have.property('payload', 'uppercase');
-    //           done();
-    //         } catch(err) {
-    //           done(err);
-    //         }
-    //       });
-    //       n1.receive({ payload: "UpperCase" });
-    //     });
-    //   });
 });
-
-// setTimeout(function () {
-//     log() // logs out active handles that are keeping node running
-// }, 5000);
