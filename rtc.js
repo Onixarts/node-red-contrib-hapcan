@@ -11,9 +11,10 @@
 
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
         this.number2bcd = (value) => ( ((Math.floor(value/10)& 0x0F)<<4) + ((value%10) & 0x0F));
         
@@ -78,9 +79,13 @@
             }
             done()
         });
+
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
+
         this.on('close', function() {
-            // tidy up any state
-        });
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
+        });        
+
     }
     RED.nodes.registerType("rtc-output",RTCOutputNode);
 

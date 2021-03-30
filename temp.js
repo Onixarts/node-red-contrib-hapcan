@@ -11,12 +11,13 @@
         
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
-        node.gateway.eventEmitter.on('messageReceived_304', function(data){
-            
+        node.messageReceived = function(data)
+        {            
             var hapcanMessage = data.payload;
 
             if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
@@ -32,11 +33,15 @@
             hapcanMessage.hysteresis = Number(Number(hapcanMessage.frame[12] * 0.0625).toFixed(4));
 
             node.send({topic: 'Temperature sensor message', payload: hapcanMessage});
-        });
+        }
+
+        node.gateway.eventEmitter.on('messageReceived_304', node.messageReceived)
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
 
         this.on('close', function() {
-            // tidy up any state
-        });
+            node.gateway.eventEmitter.removeListener('messageReceived_304', node.messageReceived)
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
+        });        
 
     }
     RED.nodes.registerType("temp-input",TempInputNode);

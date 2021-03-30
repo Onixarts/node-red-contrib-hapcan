@@ -11,9 +11,10 @@ module.exports = function(RED) {
         
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
         node.on('input', function(msg, send, done) {
    
@@ -83,9 +84,12 @@ module.exports = function(RED) {
             sendMessage(control, node, msg, done);
             
         });
+
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
+
         this.on('close', function() {
-            // tidy up any state
-        });
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
+        });        
 
         function isNodeValid(nodeNr)
         {

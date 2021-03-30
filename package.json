@@ -1,7 +1,7 @@
 {
   "name": "node-red-contrib-hapcan",
   "description": "Set of nodes for HAPCAN (home automation project based on CAN bus).",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "dependencies": {},
   "keywords": [
     "node-red",

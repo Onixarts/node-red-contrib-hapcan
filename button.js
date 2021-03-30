@@ -13,9 +13,10 @@
         
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
         node.on('input', function(msg, send, done) {
             
@@ -101,8 +102,11 @@
             node.gateway.send(msg);
             done()
         });
+
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
+
         this.on('close', function() {
-            // tidy up any state
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
         });
 
         function isLedValid(led)
@@ -159,12 +163,13 @@
         
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
-        node.gateway.eventEmitter.on('messageReceived_301', function(data){
-            
+        node.messageReceived = function(data)
+        {            
             var hapcanMessage = data.payload;
 
             if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
@@ -202,10 +207,14 @@
             }
 
             node.send({topic: 'Button message', payload: hapcanMessage});
-        });
+        }
+
+        node.gateway.eventEmitter.on('messageReceived_301', node.messageReceived)
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
 
         this.on('close', function() {
-            // tidy up any state
+            node.gateway.eventEmitter.removeListener('messageReceived_301', node.messageReceived)
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
         });
 
     }
