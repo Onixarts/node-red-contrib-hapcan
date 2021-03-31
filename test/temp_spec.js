@@ -52,7 +52,7 @@ describe('HAPCAN Temperature Node', function () {
         });
     });
 
-    it('temperature value FIXME', function (done) {
+    it('temperature values Dallas min/max (-55, +125, 0.0625)', function (done) {
         helper.load(hapcanNodes, flow, function () {
             const frame =
                 [
@@ -64,8 +64,253 @@ describe('HAPCAN Temperature Node', function () {
                     0xFF,
                     0xFF,
                     0x11,
-                    0xF8,
-                    0x10,
+                    0xFC,
+                    0x90,
+                    0x07,
+                    0xD0,
+                    0x00,
+                    0xA9,
+                    0xA5
+                ];
+            const g1 = helper.getNode("g1");
+            const n1 = helper.getNode("n1");
+            const inputHelper = helper.getNode("input.helper");
+            try {
+                inputHelper.on('input', function (msg) {
+                    try {
+                        assert.equal(msg.payload.frameType, 0x304);
+                        assert.equal(msg.payload.isAnswer, false);
+                        assert.equal(msg.payload.node, 30);
+                        assert.equal(msg.payload.group, 7);
+                        assert.equal(msg.payload.type, 0x11);
+                        assert.equal(msg.payload.temp, -55);
+                        assert.equal(msg.payload.setpoint, 125);
+                        assert.equal(msg.payload.hysteresis, 0.0625);
+                        done();
+                    }
+                    catch (err) {
+                        console.log(msg);
+                        done(err);
+                    }
+                });
+                g1.messageReceived(frame);
+            }
+            catch (err) {
+                done(err);
+            }
+        });
+    });
+
+    it('temperature values Dallas max/min (125, -55, 16)', function (done) {
+        helper.load(hapcanNodes, flow, function () {
+            const frame =
+                [
+                    0xAA,
+                    0x30,
+                    0x40,
+                    30,
+                    7,
+                    0xFF,
+                    0xFF,
+                    0x11,
+                    0x07,
+                    0xD0,
+                    0xFC,
+                    0x90,
+                    0xFF,
+                    0xA9,
+                    0xA5
+                ];
+            const g1 = helper.getNode("g1");
+            const n1 = helper.getNode("n1");
+            const inputHelper = helper.getNode("input.helper");
+            try {
+                inputHelper.on('input', function (msg) {
+                    try {
+                        assert.equal(msg.payload.frameType, 0x304);
+                        assert.equal(msg.payload.isAnswer, false);
+                        assert.equal(msg.payload.node, 30);
+                        assert.equal(msg.payload.group, 7);
+                        assert.equal(msg.payload.type, 0x11);
+                        assert.equal(msg.payload.temp, 125);
+                        assert.equal(msg.payload.setpoint, -55);
+                        assert.equal(msg.payload.hysteresis, 16);
+                        done();
+                    }
+                    catch (err) {
+                        console.log(msg);
+                        done(err);
+                    }
+                });
+                g1.messageReceived(frame);
+            }
+            catch (err) {
+                done(err);
+            }
+        });
+    });
+
+    it('temperature values Dallas max+1/min-1 (126, -56, 16)', function (done) {
+        helper.load(hapcanNodes, flow, function () {
+            const frame =
+                [
+                    0xAA,
+                    0x30,
+                    0x40,
+                    30,
+                    7,
+                    0xFF,
+                    0xFF,
+                    0x11,
+                    0x07,
+                    0xE0,
+                    0xFC,
+                    0x80,
+                    0xFF,
+                    0xA9,
+                    0xA5
+                ];
+            const g1 = helper.getNode("g1");
+            const n1 = helper.getNode("n1");
+            const inputHelper = helper.getNode("input.helper");
+            try {
+                inputHelper.on('input', function (msg) {
+                    try {
+                        assert.equal(msg.payload.frameType, 0x304);
+                        assert.equal(msg.payload.isAnswer, false);
+                        assert.equal(msg.payload.node, 30);
+                        assert.equal(msg.payload.group, 7);
+                        assert.equal(msg.payload.type, 0x11);
+                        assert.equal(msg.payload.temp, 126);
+                        assert.equal(msg.payload.setpoint, -56);
+                        assert.equal(msg.payload.hysteresis, 16);
+                        done();
+                    }
+                    catch (err) {
+                        console.log(msg);
+                        done(err);
+                    }
+                });
+                g1.messageReceived(frame);
+            }
+            catch (err) {
+                done(err);
+            }
+        });
+    });
+
+    it('temperature values max/min (2047.9375, -2048, 16)', function (done) {
+        helper.load(hapcanNodes, flow, function () {
+            const frame =
+                [
+                    0xAA,
+                    0x30,
+                    0x40,
+                    30,
+                    7,
+                    0xFF,
+                    0xFF,
+                    0x11,
+                    0x7F,
+                    0xFF,
+                    0x80,
+                    0x00,
+                    0xFF,
+                    0xA9,
+                    0xA5
+                ];
+            const g1 = helper.getNode("g1");
+            const n1 = helper.getNode("n1");
+            const inputHelper = helper.getNode("input.helper");
+            try {
+                inputHelper.on('input', function (msg) {
+                    try {
+                        assert.equal(msg.payload.frameType, 0x304);
+                        assert.equal(msg.payload.isAnswer, false);
+                        assert.equal(msg.payload.node, 30);
+                        assert.equal(msg.payload.group, 7);
+                        assert.equal(msg.payload.type, 0x11);
+                        assert.equal(msg.payload.temp, 2047.9375);
+                        assert.equal(msg.payload.setpoint, -2048);
+                        assert.equal(msg.payload.hysteresis, 16);
+                        done();
+                    }
+                    catch (err) {
+                        console.log(msg);
+                        done(err);
+                    }
+                });
+                g1.messageReceived(frame);
+            }
+            catch (err) {
+                done(err);
+            }
+        });
+    });
+
+    it('temperature values min/max (-2048, 2047.9375, 16)', function (done) {
+        helper.load(hapcanNodes, flow, function () {
+            const frame =
+                [
+                    0xAA,
+                    0x30,
+                    0x40,
+                    30,
+                    7,
+                    0xFF,
+                    0xFF,
+                    0x11,
+                    0x80,
+                    0x00,
+                    0x7F,
+                    0xFF,
+                    0xFF,
+                    0xA9,
+                    0xA5
+                ];
+            const g1 = helper.getNode("g1");
+            const n1 = helper.getNode("n1");
+            const inputHelper = helper.getNode("input.helper");
+            try {
+                inputHelper.on('input', function (msg) {
+                    try {
+                        assert.equal(msg.payload.frameType, 0x304);
+                        assert.equal(msg.payload.isAnswer, false);
+                        assert.equal(msg.payload.node, 30);
+                        assert.equal(msg.payload.group, 7);
+                        assert.equal(msg.payload.type, 0x11);
+                        assert.equal(msg.payload.temp, -2048);
+                        assert.equal(msg.payload.setpoint, 2047.9375);
+                        assert.equal(msg.payload.hysteresis, 16);
+                        done();
+                    }
+                    catch (err) {
+                        console.log(msg);
+                        done(err);
+                    }
+                });
+                g1.messageReceived(frame);
+            }
+            catch (err) {
+                done(err);
+            }
+        });
+    });
+
+    it('temperature values 1/-1 (0.0625, -0.0625, 16)', function (done) {
+        helper.load(hapcanNodes, flow, function () {
+            const frame =
+                [
+                    0xAA,
+                    0x30,
+                    0x40,
+                    30,
+                    7,
+                    0xFF,
+                    0xFF,
+                    0x11,
+                    0x00,
+                    0x01,
                     0xFF,
                     0xFF,
                     0xFF,
@@ -78,14 +323,112 @@ describe('HAPCAN Temperature Node', function () {
             try {
                 inputHelper.on('input', function (msg) {
                     try {
-                        assert.equal(0x304, msg.payload.frameType);
-                        assert.equal(false, msg.payload.isAnswer);
-                        assert.equal(30, msg.payload.node);
-                        assert.equal(7, msg.payload.group);
-                        assert.equal(0x11, msg.payload.type);
-                        assert.equal(-127, msg.payload.temp);
-                        assert.equal(-0.0625, msg.payload.setpoint);
-                        assert.equal(16.0, msg.payload.hysteresis);
+                        assert.equal(msg.payload.frameType, 0x304);
+                        assert.equal(msg.payload.isAnswer, false);
+                        assert.equal(msg.payload.node, 30);
+                        assert.equal(msg.payload.group, 7);
+                        assert.equal(msg.payload.type, 0x11);
+                        assert.equal(msg.payload.temp, 0.0625);
+                        assert.equal(msg.payload.setpoint, -0.0625);
+                        assert.equal(msg.payload.hysteresis, 16);
+                        done();
+                    }
+                    catch (err) {
+                        console.log(msg);
+                        done(err);
+                    }
+                });
+                g1.messageReceived(frame);
+            }
+            catch (err) {
+                done(err);
+            }
+        });
+    });
+
+    it('temperature values -1/10 (-0.0625, 0.625, 16)', function (done) {
+        helper.load(hapcanNodes, flow, function () {
+            const frame =
+                [
+                    0xAA,
+                    0x30,
+                    0x40,
+                    30,
+                    7,
+                    0xFF,
+                    0xFF,
+                    0x11,
+                    0xFF,
+                    0xFF,
+                    0x00,
+                    0x0A,
+                    0xFF,
+                    0xA9,
+                    0xA5
+                ];
+            const g1 = helper.getNode("g1");
+            const n1 = helper.getNode("n1");
+            const inputHelper = helper.getNode("input.helper");
+            try {
+                inputHelper.on('input', function (msg) {
+                    try {
+                        assert.equal(msg.payload.frameType, 0x304);
+                        assert.equal(msg.payload.isAnswer, false);
+                        assert.equal(msg.payload.node, 30);
+                        assert.equal(msg.payload.group, 7);
+                        assert.equal(msg.payload.type, 0x11);
+                        assert.equal(msg.payload.temp, -0.0625);
+                        assert.equal(msg.payload.setpoint, 0.625);
+                        assert.equal(msg.payload.hysteresis, 16);
+                        done();
+                    }
+                    catch (err) {
+                        console.log(msg);
+                        done(err);
+                    }
+                });
+                g1.messageReceived(frame);
+            }
+            catch (err) {
+                done(err);
+            }
+        });
+    });
+
+    it('temperature values room (22.875, 24.3125, 1)', function (done) {
+        helper.load(hapcanNodes, flow, function () {
+            const frame =
+                [
+                    0xAA,
+                    0x30,
+                    0x40,
+                    30,
+                    7,
+                    0xFF,
+                    0xFF,
+                    0x11,
+                    0x01,
+                    0x6E,
+                    0x01,
+                    0x85,
+                    0x0F,
+                    0xA9,
+                    0xA5
+                ];
+            const g1 = helper.getNode("g1");
+            const n1 = helper.getNode("n1");
+            const inputHelper = helper.getNode("input.helper");
+            try {
+                inputHelper.on('input', function (msg) {
+                    try {
+                        assert.equal(msg.payload.frameType, 0x304);
+                        assert.equal(msg.payload.isAnswer, false);
+                        assert.equal(msg.payload.node, 30);
+                        assert.equal(msg.payload.group, 7);
+                        assert.equal(msg.payload.type, 0x11);
+                        assert.equal(msg.payload.temp, 22.875);
+                        assert.equal(msg.payload.setpoint, 24.3125);
+                        assert.equal(msg.payload.hysteresis, 1);
                         done();
                     }
                     catch (err) {
