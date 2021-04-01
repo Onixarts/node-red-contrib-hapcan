@@ -350,8 +350,8 @@ module.exports = function (RED) {
         })
 
         //firmware response
-        node.eventEmitter.on('messageReceived_105', function(data){
-                    
+        node.messageReceived_105 = function(data)
+        {
             var hapcanMessage = data.payload
             if(node.requestIdGroup !== Number(hapcanMessage.group))
                 return;
@@ -383,11 +383,11 @@ module.exports = function (RED) {
             }
             device.applicationVersion = hapcanMessage.frame[9]
             device.firmwareVersion = hapcanMessage.frame[10]
-        })   
+        }
         
         //description response
-        node.eventEmitter.on('messageReceived_10D', function(data){
-    
+        node.messageReceived_10D = function(data)
+        {
             var hapcanMessage = data.payload
             if(node.requestIdGroup !== Number(hapcanMessage.group))
                 return;
@@ -407,7 +407,15 @@ module.exports = function (RED) {
             normalizedDescription.forEach((v)=>{v = v===0?32:v})
             device.description += normalizedDescription.toString()
             device.descriptionFirstPart = !device.descriptionFirstPart
-        })
+        }
+
+        node.eventEmitter.on('messageReceived_105', node.messageReceived_105)
+        node.eventEmitter.on('messageReceived_10D', node.messageReceived_10D)
+
+        this.on('close', function() {
+            node.eventEmitter.removeListener('messageReceived_105', node.messageReceived_105)
+            node.eventEmitter.removeListener('messageReceived_10D', node.messageReceived_10D)
+        });
     }
     RED.nodes.registerType("hapcan-gateway", HapcanGatewayNode);
 

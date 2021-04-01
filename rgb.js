@@ -16,9 +16,10 @@ module.exports = function(RED) {
         
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
         node.on('input', function(msg, send, done) {
             
@@ -149,8 +150,11 @@ module.exports = function(RED) {
             node.gateway.send(msg);
             done()
         });
+
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
+
         this.on('close', function() {
-            // tidy up any state
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
         });
 
         function isChannelValid(channel, done)
@@ -222,12 +226,13 @@ module.exports = function(RED) {
         
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
-        
-        node.gateway.eventEmitter.on('messageReceived_308', function(data){
-            
+        }
+
+        node.messageReceived = function(data)
+        {            
             var hapcanMessage = data.payload;
 
             if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
@@ -255,11 +260,16 @@ module.exports = function(RED) {
             hapcanMessage.userField = hapcanMessage.enabled ? node.userFieldStateON : node.userFieldStateOFF;
 
             node.send({topic: 'RGB message', payload: hapcanMessage});
-        });
+        }
+
+        node.gateway.eventEmitter.on('messageReceived_308', node.messageReceived)
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
 
         this.on('close', function() {
-            // tidy up any state
+            node.gateway.eventEmitter.removeListener('messageReceived_308', node.messageReceived)
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
         });
+
     }
     RED.nodes.registerType("rgb-input",RGBInputNode);
 }

@@ -12,9 +12,10 @@ module.exports = function(RED) {
 
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
         node.on('input', function(msg, send, done) {
             
@@ -85,9 +86,12 @@ module.exports = function(RED) {
             node.gateway.send(msg);
             done()
         });
+
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
+
         this.on('close', function() {
-            // tidy up any state
-        });
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
+        });        
 
         function isChannelValid(channel, done)
         {
@@ -140,11 +144,13 @@ module.exports = function(RED) {
         
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
-        node.gateway.eventEmitter.on('messageReceived_307', function(data){
+        node.messageReceived = function(data)
+        {
             
             var hapcanMessage = data.payload;
 
@@ -168,11 +174,16 @@ module.exports = function(RED) {
             hapcanMessage.channel = hapcanMessage.frame[7];
 
             node.send({topic: 'Blind message', payload: hapcanMessage});
-        });
+        }
+
+        node.gateway.eventEmitter.on('messageReceived_307', node.messageReceived)
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
 
         this.on('close', function() {
-            // tidy up any state
-        });
+            node.gateway.eventEmitter.removeListener('messageReceived_307', node.messageReceived)
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
+        });        
+
     }
     RED.nodes.registerType("blind-input",BlindInputNode);
 }

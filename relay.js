@@ -15,10 +15,11 @@ module.exports = function(RED) {
 
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
-
+        }
+        
         node.on('input', function(msg, send, done) {
             
             var control = { 
@@ -26,7 +27,7 @@ module.exports = function(RED) {
                 action: Number(node.defaultAction),
                 delay: 0x00
             }
-
+            
             if(msg.topic === "control" )
             {
                 if(typeof msg.payload === 'object')
@@ -34,7 +35,7 @@ module.exports = function(RED) {
                     if( msg.payload.hasOwnProperty('action'))
                     {
                         if(!parseAction(msg.payload.action, control, done))
-                            return;
+                        return;
                     }
                     if( msg.payload.hasOwnProperty('channels'))
                     {
@@ -42,7 +43,7 @@ module.exports = function(RED) {
                         if(typeof msg.payload.channels === 'number')
                         {
                             if(!isChannelValid(msg.payload.channels, done))
-                                return;
+                            return;
                             control.channels = 0x01 << (msg.payload.channels -1);
                         }
                         else if(Array.isArray(msg.payload.channels))
@@ -50,7 +51,7 @@ module.exports = function(RED) {
                             for(var i = 0; i < msg.payload.channels.length; i++)
                             {
                                 if(!isChannelValid(msg.payload.channels[i], done))
-                                    return;
+                                return;
                                 control.channels |= 0x01 << (msg.payload.channels[i] - 1);
                             }
                         }
@@ -64,10 +65,10 @@ module.exports = function(RED) {
                 else
                 {
                     if(!parseAction(msg.payload, control, done))
-                        return;
+                    return;
                 }
             }
-
+            
             if( control.action === -1 ){
                 done()
                 return;
@@ -76,7 +77,7 @@ module.exports = function(RED) {
                 done()
                 return;
             }
-
+            
             var hapcanMsg = Buffer.from([0xAA, 0x10,0xA0, 0xF0,0xF0, 0xFF,0xFF, node.node,node.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
             
             if(node.UNIV === 1)
@@ -91,24 +92,27 @@ module.exports = function(RED) {
                 hapcanMsg[6] = control.channels;
                 hapcanMsg[9] = control.delay;
             }
-
+            
             msg.payload = hapcanMsg;
             msg.topic = 'control';
             node.gateway.send(msg);
             done()
         });
-        this.on('close', function() {
-            // tidy up any state
-        });
 
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)
+        
+        this.on('close', function() {
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
+        });
+        
         function isChannelValid(channel, done)
         {
             var isValid = (channel > 0 && channel < 7);
             if(!isValid)
-                done('Invalid channel: '+ channel);
+            done('Invalid channel: '+ channel);
             return isValid;
         }
-
+        
         function parseAction(value, control, done)
         {
             if(typeof value === "string" )
@@ -156,11 +160,13 @@ module.exports = function(RED) {
         
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
-        node.gateway.eventEmitter.on('messageReceived_302', function(data){
+        node.messageReceived = function(data)
+        {
             
             var hapcanMessage = data.payload;
 
@@ -176,10 +182,14 @@ module.exports = function(RED) {
             hapcanMessage.userField = hapcanMessage.state === 'ON' ? node.userFieldStateON : node.userFieldStateOFF;
 
             node.send({topic: 'Relay message', payload: hapcanMessage});
-        });
+        }
+
+        node.gateway.eventEmitter.on('messageReceived_302', node.messageReceived)
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
 
         this.on('close', function() {
-            // tidy up any state
+            node.gateway.eventEmitter.removeListener('messageReceived_302', node.messageReceived)
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
         });
 
         function isChannelValid(channel)

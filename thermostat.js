@@ -11,12 +11,13 @@ module.exports = function (RED) {
 
         this.status({fill: "grey", shape: "dot", text: "not connected"});
 
-        node.gateway.eventEmitter.on('statusChanged', function(data){
+        node.statusReceived = function(data)
+        {
             node.status(data)
-        })
+        }
 
-        node.gateway.eventEmitter.on('messageReceived_304', function (data) {
-
+        node.messageReceived = function(data)
+        {
             var hapcanMessage = data.payload;
 
             if (hapcanMessage.node != node.node || hapcanMessage.group != node.group)
@@ -49,10 +50,14 @@ module.exports = function (RED) {
             }
 
             node.send({ topic: 'Thermostat message', payload: hapcanMessage });
-        });
+        }
 
-        this.on('close', function () {
-            // tidy up any state
+        node.gateway.eventEmitter.on('messageReceived_304', node.messageReceived)
+        node.gateway.eventEmitter.on('statusChanged', node.statusReceived)        
+
+        this.on('close', function() {
+            node.gateway.eventEmitter.removeListener('messageReceived_304', node.messageReceived)
+            node.gateway.eventEmitter.removeListener('statusChanged', node.statusReceived)
         });
 
     }
