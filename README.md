@@ -11,16 +11,6 @@ Nodes are using the [Hapcan ethernet module](http://hapcan.com/devices/universal
 - Hapcan based infrastructure
 - Hapcan ethernet module
 
-# New in version 2.1
-
-Node-red 1.x.x support, includes new output nodes input event registration - which allows to using new Complete Node-red node.
-There are also some visual issues fixes for custom-input and custom-output nodes for Node-red 1.x.x.
-
-Added new button output node, that controls 14 buttons LEDs.
-
-**This version require Node-red version 1.x.x and later and will not work on older versions.**
-
-
 # Instalation
 ## Using NODE-RED installer
 
@@ -44,19 +34,21 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 
 ## Currently available nodes:
 
-- **Blind input** receives messages from [blind controller](http://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
-- **Blind output** allows controlling the [blind controller](http://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
-- **Button input** receives messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-1-x-x.htm)
-- **Button output** allows controlling button LEDs [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-1-3-x.htm)
-- **IR input** receive infrared sensor messages from [Infrared receiver and transmitter](http://hapcan.com/devices/universal/univ_3/univ_3-5-0-x/index.htm)
-- **Relay input** receives messages from [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
-- **Relay output** allows controlling the [relay modules](http://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
-- **RGB input** receives messages from [RGB LED controller module](http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
-- **RGB output** allows controlling [RGB LED controller module](http://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
-- **RTC input** receives time messages from [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
-- **RTC output** allows set time and date for [ethernet module](http://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
+- **Blind input** receives messages from [blind controller](https://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
+- **Blind output** allows controlling the [blind controller](https://hapcan.com/devices/universal/univ_3/univ_3-7-0-x/index.htm)
+- **Button input** receives messages from [button modules](https://hapcan.com/devices/universal/univ_3/univ_3-1-x-x.htm)
+- **Button output** allows controlling button LEDs [button modules](https://hapcan.com/devices/universal/univ_3/univ_3-1-3-x.htm)
+- **Dimmer input** receives messages from [dimmer module](https://hapcan.com/devices/universal/univ_3/univ_3-6-0-x/index.htm)
+- **Dimmer output** allows controlling [dimmer module](https://hapcan.com/devices/universal/univ_3/univ_3-6-0-x/index.htm)
+- **IR input** receive infrared sensor messages from [Infrared receiver and transmitter](https://hapcan.com/devices/universal/univ_3/univ_3-5-0-x/index.htm)
+- **Relay input** receives messages from [relay modules](https://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
+- **Relay output** allows controlling the [relay modules](https://hapcan.com/devices/universal/univ_3/univ_3-2-x-x.htm)
+- **RGB input** receives messages from [RGB LED controller module](https://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
+- **RGB output** allows controlling [RGB LED controller module](https://hapcan.com/devices/universal/univ_3/univ_3-8-0-x/index.htm)
+- **RTC input** receives time messages from [ethernet module](https://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
+- **RTC output** allows set time and date for [ethernet module](https://hapcan.com/devices/universal/univ_3/univ_3-102-0-x/index.htm)
 - **State output** helps request Hapcan modules status informations
-- **Temp input** receives temperature messages from [button modules](http://hapcan.com/devices/universal/univ_3/univ_3-4-x-x.htm)
+- **Temp input** receives temperature messages from [button modules](https://hapcan.com/devices/universal/univ_3/univ_3-4-x-x.htm)
 - **Thermostat input** receives thermostat messages from [button modules](https://hapcan.com/devices/universal/univ_3/univ_3-1-3-x/index.htm)
 - **Custom input** receives any Hapcan's frame data from any module (custom modules included).
 - **Custom output** sends any configured (static) and dynamic (payload) message to Hapcan's bus.
