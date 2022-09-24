@@ -39,7 +39,7 @@
                 if(selectedGatewayId == null)
                     selectedGatewayId = gatewaySelect.children("option").first().val()
                 var gateway = RED.nodes.node(selectedGatewayId)
-                if(gateway !== null )
+                if(gateway != null )
                 {
                     deviceList = gateway.devices.filter((d) => d.applicationType === 5)
                     deviceList.forEach( (device) => {
