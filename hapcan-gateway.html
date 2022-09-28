@@ -34,18 +34,21 @@
             showDevices = function(){
                 config.devices.forEach(device => {
                     
-                    var tableRow = $(`#hapcan-devices table #hapcan-device-${device.id}`)
-                    if(tableRow.length){
-
-                    }
-                    else{
-                        var newRow = `<tr id="hapcan-device-${device.id}">
-                                <td style="text-align: right">(${device.node}, ${device.group})</td>
+                    var row = `<td style="text-align: right;">(${device.node}, ${device.group})</td>
                                 <td><i class="fa ${device.applicationTypeIcon}"></i> ${device.description}</td>
                                 <td>${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion} ${device.applicationTypeString}</td>
                                 <td>${device.hardwareTypeString}</td>`
 
-                        $("#hapcan-devices table tr:last").after(newRow)
+                    var tableRow = $(`#hapcan-devices table #hapcan-device-${device.id}`)
+
+                    if(tableRow.length){
+                        if(tableRow.html() !== row)
+                        {
+                            tableRow.html(row)
+                        }
+                    }
+                    else{
+                        $("#hapcan-devices table tr:last").after(`<tr id="hapcan-device-${device.id}">${row}</tr>`)
                     }
                 })
             }
@@ -54,28 +57,69 @@
                 discovering = !discovering
                 if(discovering)
                 {
-                    config.devices = []
-                    $('#hapcan-devices table tr:not(:first-child)').remove()
+                    $('#hapcan-devices table tr:not(:first-child)').addClass('hapcan-device-need-refresh').removeClass('hapcan-device-not-found')
 
-                    $(this).html('<i class="fa fa-refresh fa-spin"></i> Discovering devices... (click to stop)')
+                    $(this).html('<i class="fa fa-refresh fa-spin"></i> Updating device list... (click to stop)')
                     
-                        discoveringGroup = 1
-                        for(let i = 1; i < 255; i++){
-                            $('#hapcan-discover-progressbar div').css('width', parseInt(((i+1)/255)*100)+'%' )
-                            await $.getJSON(`hapcan-devices-discover/${config.id}/${i}`,function(data) {
-                                config.devices = JSON.parse(data)
-                                showDevices()
+                    for(let i = 1; i < 255; i++){
+                        $('#hapcan-discover-progressbar div').css('width', parseInt(((i+1)/255)*100)+'%' )
+                        await $.getJSON(`hapcan-devices-discover/${config.id}/${i}`,function(data) {
+                            var devicesInGroup = JSON.parse(data)
+                            devicesInGroup.forEach(foundDevice => {
+                                var device = config.devices.find( v => v.id === foundDevice.id )
+                                if(device === undefined)
+                                {
+                                    config.devices.push(foundDevice)
+                                }
+                                else
+                                {
+                                    $(`#hapcan-devices table #hapcan-device-${device.id}`).removeClass('hapcan-device-need-refresh')
+                                    if(foundDevice.description !== '') 
+                                        device.description = foundDevice.description
+                                    if(foundDevice.serialNumber !== 0)
+                                        device.serialNumber = foundDevice.serialNumber;
+                                    if(foundDevice.hardwareType !== 0)
+                                        device.hardwareType = foundDevice.hardwareType
+                                    if(foundDevice.hardwareTypeString !== 'unknown')  
+                                        device.hardwareTypeString = foundDevice.hardwareTypeString
+                                    if(foundDevice.hardwareVersion !== 0)  
+                                        device.hardwareVersion = foundDevice.hardwareVersion
+                                    if(foundDevice.applicationType !== 0)  
+                                        device.applicationType = foundDevice.applicationType
+                                    if(foundDevice.applicationTypeString !== 'unknown')
+                                        device.applicationTypeString = foundDevice.applicationTypeString
+                                    if(foundDevice.applicationTypeIcon !== 'fa-microchip')  
+                                        device.applicationTypeIcon = foundDevice.applicationTypeIcon
+                                    if(foundDevice.applicationVersion !== 0)  
+                                        device.applicationVersion = foundDevice.applicationVersion
+                                    if(foundDevice.firmwareVersion !== 0)  
+                                        device.firmwareVersion = foundDevice.firmwareVersion
+                                }
+                                
                             })
-                            if(!discovering)
-                                return                            
-                        }
-                        $('#discover-devices').trigger('click')
+                            showDevices()
+                        })
+                        if(!discovering)
+                            return                            
+                    }
+                    $('#discover-devices').trigger('click')
                 }
                 else
                 {
-                    $(this).html('<i class="fa fa-refresh"></i> Discover devices')
+                    $(this).html('<i class="fa fa-refresh"></i> Discover/Refresh devices')
                 }
                 
+                $('#hapcan-devices table tr:not(:first-child)')
+                    .filter(function(){return $(this).hasClass('hapcan-device-need-refresh')})
+                        .addClass('hapcan-device-not-found')
+                        .removeClass('hapcan-device-need-refresh')
+            })
+
+            $('#clear-devices').click(async function()
+            {
+                config.devices = [];
+                $('#hapcan-devices table tr:not(:first-child)').remove()
+                $('#hapcan-discover-progressbar div').css('width', '0%' )
             })
 
             showDevices()
@@ -148,10 +192,23 @@
                 transition: width 0.3s;
             }
 
+            #clear-devices {
+                right: 16px;
+                position: absolute;
+            }
+
+            .hapcan-device-not-found {
+                color: red;
+            }
+            .hapcan-device-need-refresh {
+                opacity: 0.6;
+            }
+
         </style>
 
     <div class="form-row">
-        <button id="discover-devices"><i class="fa fa-refresh"></i> Discover devices</button>
+        <button id="discover-devices"><i class="fa fa-refresh"></i> Discover/Refresh devices</button>
+        <button id="clear-devices"><i class="fa fa-trash"></i> Clear device list</button>
     </div>
     <div class="form-row" id="hapcan-discover-progressbar">
         <div></div>
@@ -182,13 +239,13 @@
         try to connect to the Ethernet module again.
     </p>
     <p><b>Debug mode</b> will displat each send and received Hapcan frame in the system console (when Node-red is running as a console application)</p>
-    <p><b>Discover devices</b> button will fire a device searching procedure (from group 1 to 255). The found devices will
-        be shown in the table view below. Each time the button is pressed, the device list is cleared and
-        populate with new search results. Devices list is stored in the configuration node and will be used
-        in other nodes to choose Hapcan device easily. You don't have to discover devices, but then You should
+    <p><b>Discover/Refresh devices</b> button will fire a device searching procedure (from group 1 to 255). The found devices will
+        be shown in the table view below. Each time the button is pressed, the device list is being updated (data is changed) and
+        populate with new devices found. Devices list is stored in the configuration node and will be used
+        in other nodes to choose Hapcan device easily. You don't have to refresh devices, but then You should
         know node and group number of the device You want to use in Node-red.
     </p>
-    <p>Any time You add, remove or change any module in Hapcan network, use Discover function to refresh 
+    <p>Any time You add, remove or change any module configuration in Hapcan network, use Discover/Refresh function to update 
         the devices list.
     </p>
 </script>

@@ -259,10 +259,7 @@ module.exports = function (RED) {
         RED.httpAdmin.get("/hapcan-devices-discover/:id/:group", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
             var node = RED.nodes.getNode(req.params.id);
-            if(Number(req.params.group) === 1)
-            {
                 node.devices = []
-            }
     
             node.foundDevicesInGroup = 0
             node.firmwareResponsesInGroup = 0
@@ -403,9 +400,7 @@ module.exports = function (RED) {
             {
                 node.descriptionResponsesInGroup += 1
             }
-            let normalizedDescription = hapcanMessage.frame.slice(5,13)
-            normalizedDescription.forEach((v)=>{v = v===0?32:v})
-            device.description += normalizedDescription.toString()
+            device.description += hapcanMessage.frame.slice(5,13).toString().replace(/\x00/g,'')
             device.descriptionFirstPart = !device.descriptionFirstPart
         }
 
