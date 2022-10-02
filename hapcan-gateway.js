@@ -312,6 +312,20 @@ module.exports = function (RED) {
                 this.applicationTypeIcon = 'fa-microchip'
                 this.applicationVersion = 0
                 this.firmwareVersion = 0
+                this.channels = []
+            }
+            initChannels(count)
+            {
+                this.channels = []
+                for(let i = 0; i < count; i++)
+                    this.channels.push(new HapcanDeviceChannel(`channel_${i}`))
+            }
+        }
+
+        class HapcanDeviceChannel {
+            constructor(name)
+            {
+                this.name = name
             }
         }
 
@@ -361,25 +375,42 @@ module.exports = function (RED) {
             node.firmwareResponsesInGroup += 1
             device.hardwareVersion = hapcanMessage.frame[7]
             device.applicationType = hapcanMessage.frame[8]
+            device.applicationVersion = hapcanMessage.frame[9]
+            device.firmwareVersion = hapcanMessage.frame[10]
+
             switch(device.applicationType)
             {
-                case 0x01: device.applicationTypeString = 'Button'; device.applicationTypeIcon = 'fa-hand-o-down'; break
-                case 0x02: device.applicationTypeString = 'Relay'; device.applicationTypeIcon = 'fa-power-off'; break
+                case 0x01: device.applicationTypeString = 'Button'; device.applicationTypeIcon = 'fa-hand-o-down';
+                        switch(Number(device.hardwareVersion))
+                        {
+                            case 1:
+                                //TODO: UNIV1 devices has a different version meaning?
+                                break
+                            case 3:
+                                switch(Number(device.applicationVersion))
+                                {
+                                    case 0: device.initChannels(8); break;
+                                    case 1: device.initChannels(13); break;
+                                    case 2: device.initChannels(6); break;
+                                    case 3: device.initChannels(14); break;
+                                }
+                                break
+                        }
+                break
+                case 0x02: device.applicationTypeString = 'Relay'; device.applicationTypeIcon = 'fa-power-off'; device.initChannels(6); break
                 case 0x03: device.applicationTypeString = 'IR Receiver'; device.applicationTypeIcon = 'fa-feed'; break
-                case 0x04: device.applicationTypeString = 'Temperature sensor'; device.applicationTypeIcon = 'fa-thermometer-half'; break
-                case 0x05: device.applicationTypeString = 'Infrared transmitter'; device.applicationTypeIcon = 'fa-feed'; break
-                case 0x06: device.applicationTypeString = 'Dimmer'; device.applicationTypeIcon = 'fa-lightbulb-o'; break
-                case 0x07: device.applicationTypeString = 'Blind controller'; device.applicationTypeIcon = 'fa-bars'; break
-                case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; break
-                case 0x09: device.applicationTypeString = 'Open collector'; device.applicationTypeIcon = 'fa-external-link'; break
+                case 0x04: device.applicationTypeString = 'Temp. sensor'; device.applicationTypeIcon = 'fa-thermometer-half'; break
+                case 0x05: device.applicationTypeString = 'IR transmitter'; device.applicationTypeIcon = 'fa-feed'; device.initChannels(1); break
+                case 0x06: device.applicationTypeString = 'Dimmer'; device.applicationTypeIcon = 'fa-lightbulb-o'; device.initChannels(1); break
+                case 0x07: device.applicationTypeString = 'Blind controller'; device.applicationTypeIcon = 'fa-bars'; device.initChannels(3); break
+                case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; device.initChannels(4); break
+                case 0x09: device.applicationTypeString = 'Open collector'; device.applicationTypeIcon = 'fa-external-link'; device.initChannels(10); break
                 
                 default:
                     device.hardwareTypeString = 'Custom device'
                     device.applicationTypeIcon = 'fa-microchip'
 
             }
-            device.applicationVersion = hapcanMessage.frame[9]
-            device.firmwareVersion = hapcanMessage.frame[10]
         }
         
         //description response

@@ -29,30 +29,52 @@
                 if( discovering )
                     $('#discover-devices').trigger('click')
                 $('#discover-devices').off('click')
+                $('#clear-devices').off('click')
+                $(`#hapcan-devices table .caret`).off('click')
             }
 
             showDevices = function(){
                 config.devices.forEach(device => {
                     
-                    var row = `<td style="text-align: right;">(${device.node}, ${device.group})</td>
-                                <td><i class="fa ${device.applicationTypeIcon}"></i> ${device.description}</td>
+                    var channelsRowContent = ''
+                    if(device.channels === undefined)
+                        device.channels = []
+                    for(let i = 0; i < device.channels.length; i++)
+                    {
+                        channelsRowContent += `<li id="hapcan-device-${device.id}-channel-${i}">#${i+1} ${device.channels[i].name}</li>`
+                    }
+
+                    var row = `<td><span class="caret"> <i class="fa ${device.applicationTypeIcon}"></i> ${device.description} (${device.node}, ${device.group})</span>
+                                <ul class="nested">${channelsRowContent}</ul>
+                                </td>
                                 <td>${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion} ${device.applicationTypeString}</td>
                                 <td>${device.hardwareTypeString}</td>`
 
+
                     var tableRow = $(`#hapcan-devices table #hapcan-device-${device.id}`)
 
-                    if(tableRow.length){
-                        if(tableRow.html() !== row)
-                        {
-                            tableRow.html(row)
-                        }
+                    if(tableRow.length)
+                    {
+                        tableRow.children('.caret').off('click')
+                        tableRow.html(row)
                     }
-                    else{
+                    else
+                    {
                         $("#hapcan-devices table tr:last").after(`<tr id="hapcan-device-${device.id}">${row}</tr>`)
                     }
+
+                    tableRow = $(`#hapcan-devices table #hapcan-device-${device.id} .caret`)
+                    tableRow.on('click', onCaretClick)
+
                 })
             }
             
+            onCaretClick = function(evt)
+            {
+                $(evt.currentTarget).parent().children('.nested').toggleClass('active')
+                $(evt.currentTarget).toggleClass('caret-down')
+            }
+
             $('#discover-devices').click(async function(){
                 discovering = !discovering
                 if(discovering)
@@ -94,6 +116,8 @@
                                         device.applicationVersion = foundDevice.applicationVersion
                                     if(foundDevice.firmwareVersion !== 0)  
                                         device.firmwareVersion = foundDevice.firmwareVersion
+                                    
+                                    device.channels = [...foundDevice.channels]
                                 }
                                 
                             })
@@ -118,6 +142,7 @@
             $('#clear-devices').click(async function()
             {
                 config.devices = [];
+                $(`#hapcan-devices table .caret`).off('click', onCaretClick)
                 $('#hapcan-devices table tr:not(:first-child)').remove()
                 $('#hapcan-discover-progressbar div').css('width', '0%' )
             })
@@ -175,6 +200,7 @@
             }
             #hapcan-devices table td{
                 padding-right: 16px;
+                vertical-align: top;
             }
             #hapcan-devices table tr:hover td{
                 background-color: #eee;
@@ -204,6 +230,36 @@
                 opacity: 0.6;
             }
 
+            #hapcan-devices .caret {
+                cursor: pointer;
+                user-select: none;
+            }
+
+            #hapcan-devices ul {
+                list-style-type: none;
+            }
+              
+            #hapcan-devices .caret::before {
+                content: "\25B6";
+                color: black;
+                display: inline-block;
+                margin-right: 6px;
+                transition: all 0.3s;
+            
+            }
+              
+            #hapcan-devices .caret-down::before {
+                transform: rotate(90deg);
+            }
+
+            #hapcan-devices .nested {
+                display: none;
+            }
+            
+            #hapcan-devices .active {
+                display: block;
+            }
+
         </style>
 
     <div class="form-row">
@@ -217,10 +273,9 @@
     <div class="form-row" id="hapcan-devices">
         <table>
             <tr>
-                <th style="width: 20%">(Node, Group)</th>
-                <th>Description</th>
-                <th>Firmware</th>
-                <th>Hardware</th>
+                <th style="width: auto;">Description (Node, Group)</th>
+                <th style="width: 140px;">Firmware</th>
+                <th style="width: 90px;">Hardware</th>
             </tr>
         </table>
     </div>
