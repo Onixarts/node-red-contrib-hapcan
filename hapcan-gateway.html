@@ -83,9 +83,11 @@
 
                     $(this).html('<i class="fa fa-refresh fa-spin"></i> Updating device list... (click to stop)')
                     
-                    for(let i = 1; i < 255; i++){
+                    for(let i = 1; i < 255; i++)
+                    {
                         $('#hapcan-discover-progressbar div').css('width', parseInt(((i+1)/255)*100)+'%' )
-                        await $.getJSON(`hapcan-devices-discover/${config.id}/${i}`,function(data) {
+                        await $.getJSON(`hapcan-devices-discover/${config.id}/${i}`,function(data) 
+                        {
                             var devicesInGroup = JSON.parse(data)
                             devicesInGroup.forEach(foundDevice => {
                                 var device = config.devices.find( v => v.id === foundDevice.id )
@@ -119,13 +121,51 @@
                                     
                                     device.channels = [...foundDevice.channels]
                                 }
-                                
                             })
                             showDevices()
                         })
+
+                        let devicesInGroup = config.devices.filter((d)=> d.group === i)
+                        for(var k = 0; k < devicesInGroup.length; k++)
+                        {
+                            let device = devicesInGroup[k]
+
+                            //request only compatible devices...
+                            // hardwareVersion.applicationType.applicationVersion.firmwareVersion
+                            
+                            if(Number(device.hardwareVersion) !== 3) //UNIV3 only
+                                continue;
+                            
+                            if(Number(device.applicationType) === 2) //Relay
+                            {
+                                if(Number(device.applicationVersion === 4)) //14 buttons
+                                {
+                                    if(Number(device.firmwareVersion < 3)) // min firmware .3
+                                        continue
+                                }
+                                else
+                                    continue
+                            }
+                            else
+                                continue
+                                
+                            for(var j = 1;j < device.channels.length+1; j++)
+                            {
+                                await $.getJSON(`hapcan-device-channel-description/${config.id}/${device.node}/${device.group}/${j}`, function(channelData)
+                                {
+                                    var channel = JSON.parse(channelData)
+                                    if(channel.name !== '')
+                                        device.channels[j-1].name = channel.name
+                                    
+                                    showDevices()
+                                })
+                            }
+                        }
+
                         if(!discovering)
                             return                            
                     }
+
                     $('#discover-devices').trigger('click')
                 }
                 else

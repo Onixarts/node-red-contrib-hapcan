@@ -145,6 +145,39 @@ module.exports = function (RED) {
             }
         }
 
+        this.getDeviceInfo = function(nodeNumber, groupNumber, channelNumber)
+        {
+            var deviceId = ('00'+ nodeNumber.toString(16)).substr(-2).toUpperCase() + ('00'+ groupNumber.toString(16)).substr(-2).toUpperCase()
+            var device = node.devices.find( v => v.id === deviceId )
+            let deviceInfo = {
+                deviceName: `device_${deviceId}`,
+                channelName: `channel_${channelNumber}`
+            }
+
+            if(device !== undefined)
+            {
+
+                if(device.description !== '')
+                    deviceInfo.deviceName = device.description
+
+                if(channelNumber<1)
+                {
+                    node.error(`Channel number must be 1 or more`)
+                    return null
+                }
+                
+                if(device.channels.length > 0 && channelNumber > device.channels.length)
+                {
+                    node.error(`Channel number must be less than device available channels count (${device.channels.count})`)
+                    return null
+                }
+                
+                let channelName = device.channels[channelNumber-1].name
+                if(channelName !== '')
+                    deviceInfo.channelName = channelName
+            }
+            return deviceInfo
+        }
         
         this.messageReceived = function(frame)
         {
@@ -197,9 +230,21 @@ module.exports = function (RED) {
         this.requestIdGroup = 0
         this.foundDevicesInGroup = 0
         this.firmwareResponseInGroup = 0
+        this.channelDescription = ''
+        this.channelDescriptionFramesReceived = 0
+        
 
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function waitForChannelDescriptionResponseAsync(){
+            for (let i = 0; i < 30; i++) {
+                await sleep(100);
+                if(node.channelDescriptionFramesReceived === 5)
+                    return
+            }
+            throw new Error(`Timeout while requesting node channel description`)
         }
 
         async function waitForNewDevicesAsync(){
@@ -255,6 +300,34 @@ module.exports = function (RED) {
                 console.log(e)
             }
         }
+
+        RED.httpAdmin.get("/hapcan-device-channel-description/:id/:node/:group/:channel", RED.auth.needsPermission('serial.read'), async function(req,res) {
+            
+            var node = RED.nodes.getNode(req.params.id);
+ 
+            try{
+                node.requestIdGroup = Number(req.params.group)
+                var nodeNumber = Number(req.params.node)
+                var channel = Number(req.params.channel)
+
+                node.channelDescription = ''
+                node.channelDescriptionFramesReceived = 0
+
+                // request channel description from node
+                var msg = Buffer.from([0xAA, 0x11, 0x70, node.node,node.group, channel, 0xFF, nodeNumber, req.params.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                node.send({payload: msg})
+                
+                await waitForChannelDescriptionResponseAsync()
+            }
+            catch(e)
+            {
+                console.log(e)
+                res.status(408)
+                return
+            }
+    
+            res.json(JSON.stringify({name: node.channelDescription})); 
+        })
 
         RED.httpAdmin.get("/hapcan-devices-discover/:id/:group", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
@@ -318,7 +391,7 @@ module.exports = function (RED) {
             {
                 this.channels = []
                 for(let i = 0; i < count; i++)
-                    this.channels.push(new HapcanDeviceChannel(`channel_${i}`))
+                    this.channels.push(new HapcanDeviceChannel(`channel_${i+1}`))
             }
         }
 
@@ -435,12 +508,28 @@ module.exports = function (RED) {
             device.descriptionFirstPart = !device.descriptionFirstPart
         }
 
+        //channel description response
+        node.messageReceived_117 = function(data)
+        {
+            var hapcanMessage = data.payload
+            if(node.requestIdGroup !== Number(hapcanMessage.group))
+                return;
+
+            //var responseChannel = hapcanMessage.frame[5] >>> 3
+            //var frameNumber = hapcanMessage.frame[5] & 0x07
+
+            node.channelDescription += hapcanMessage.frame.slice(6,13).toString().replace(/\x00/g,'') 
+            node.channelDescriptionFramesReceived++;
+        }        
+
         node.eventEmitter.on('messageReceived_105', node.messageReceived_105)
         node.eventEmitter.on('messageReceived_10D', node.messageReceived_10D)
+        node.eventEmitter.on('messageReceived_117', node.messageReceived_117)
 
         this.on('close', function() {
             node.eventEmitter.removeListener('messageReceived_105', node.messageReceived_105)
             node.eventEmitter.removeListener('messageReceived_10D', node.messageReceived_10D)
+            node.eventEmitter.removeListener('messageReceived_117', node.messageReceived_117)
         });
     }
     RED.nodes.registerType("hapcan-gateway", HapcanGatewayNode);
