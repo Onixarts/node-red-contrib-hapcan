@@ -20,7 +20,7 @@ module.exports = function(RED) {
         {            
             var hapcanMessage = data.payload;
 
-            if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
+            if( (Number(node.node)!== 0 && hapcanMessage.node != node.node) || (Number(node.group)!== 0 && hapcanMessage.group != node.group) )
                 return;
 
             hapcanMessage.codeType = "";
@@ -42,6 +42,10 @@ module.exports = function(RED) {
 
             hapcanMessage.address = hapcanMessage.frame[8];
             hapcanMessage.command = hapcanMessage.frame[9];
+
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 1)
+            hapcanMessage.channelName = channelName
+            hapcanMessage.deviceName = deviceName
 
             switch(tempCodeTyped)
             {

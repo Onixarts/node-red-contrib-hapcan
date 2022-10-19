@@ -20,10 +20,14 @@ module.exports = function (RED) {
         {
             var hapcanMessage = data.payload;
 
-            if (hapcanMessage.node != node.node || hapcanMessage.group != node.group)
+            if( (Number(node.node)!== 0 && hapcanMessage.node != node.node) || (Number(node.group)!== 0 && hapcanMessage.group != node.group) )
                 return;
 
             hapcanMessage.type = hapcanMessage.frame[7];
+
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 1)
+            hapcanMessage.channelName = channelName
+            hapcanMessage.deviceName = deviceName
 
             if (hapcanMessage.type != 0x12)
                 return;

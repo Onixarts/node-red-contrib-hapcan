@@ -6,8 +6,8 @@
         defaults: {
             gateway: {type:"hapcan-gateway", required: true},
             name: {value:""},
-            group: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);} },
-            node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
+            group: {value: 1, required: true, validate: function(val){return (val >= 0 && val < 256);} },
+            node: {value: 1, required: true, validate: function(val){return (val >= 0 && val < 256);}},
             filter: {value: 0x00, required: true, validate: function(val) {return (val>=0 && val <0x03)}},
         },
         inputs:0,
@@ -15,7 +15,7 @@
         icon: "relay-output.png",
         align: 'left',
         label: function() {
-            return (this.name||"IR input") + ' ('+this.node+','+this.group+')';
+            return `${this.name||"IR input"} (${Number(this.node) === 0 ? 'any' : this.node}, ${Number(this.group) === 0 ? 'any' : this.group})`;
         },
         labelStyle: function() { return this.name?"node_label_italic":""; } ,
         oneditprepare: async function() {
@@ -35,6 +35,7 @@
             gatewaySelect.change(function()
             {
                 devicesOptions = ''
+                currentDevice = null
                 var selectedGatewayId = gatewaySelect.children('option[selected]').first().val()
                 if(selectedGatewayId == null)
                     selectedGatewayId = gatewaySelect.children("option").first().val()
@@ -75,18 +76,20 @@
                 }
             })
 
-            for(var i = 1; i < 256; i++)
+            for(var i = 0; i < 256; i++)
             {
                 var selectedNode = '';
                 if((Number(this.node) === i))
                     selectedNode = 'selected="selected"';
-                nodeOptions += '<option '+ selectedNode +' value="'+i+'">'+i+'</option>';
+                let text = i === 0? 'any' : i
+                
+                nodeOptions += `<option ${selectedNode} value="${i}">${text}</option>`
 
                 var selectedGroup = '';
                 if((Number(this.group) === i))
                     selectedGroup = 'selected="selected"';
                 
-                groupOptions += '<option '+ selectedGroup +' value="'+i+'">'+i+'</option>';
+                groupOptions += `<option ${selectedGroup} value="${i}">${text}</option>`
             }
             
             nodeSelect.append(nodeOptions);
@@ -170,6 +173,12 @@
 
         <dt>startMessage <span class="property-type">boolean</span></dt>
         <dd>Start message is true, when receiver starts receiving and false when it stops receiving IR code.</dd>
+
+        <dt>channelName <span class="property-type">string</span></dt>
+        <dd>Device's channel name that has changed.</dd>
+
+        <dt>deviceName <span class="property-type">string</span></dt>
+        <dd>Device's name that emits the message.</dd>
     </dl>
     <p>
         This node receives IR status messages of the selected module in group. The output is fired twice, on press and on release of the IR remote.

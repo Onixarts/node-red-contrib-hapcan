@@ -121,7 +121,7 @@ module.exports = function(RED) {
         {
             var hapcanMessage = data.payload;
 
-            if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
+            if( (Number(node.node)!== 0 && hapcanMessage.node != node.node) || (Number(node.group)!== 0 && hapcanMessage.group != node.group) )
                 return;
 
             if(node.frameTypeFilter !== 0){
@@ -144,7 +144,11 @@ module.exports = function(RED) {
             if( node.d6name !== '')
                 hapcanMessage[node.d6name] = hapcanMessage.frame[11];                
             if( node.d7name !== '')
-                hapcanMessage[node.d7name] = hapcanMessage.frame[12];                
+                hapcanMessage[node.d7name] = hapcanMessage.frame[12];    
+                
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 1) // channel is unknown
+            //hapcanMessage.channelName = channelName
+            hapcanMessage.deviceName = deviceName
 
             node.send({topic: 'Hapcan message', payload: hapcanMessage});
         };

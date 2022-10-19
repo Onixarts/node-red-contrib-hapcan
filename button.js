@@ -172,7 +172,7 @@
         {            
             var hapcanMessage = data.payload;
 
-            if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
+            if( (Number(node.node)!== 0 && hapcanMessage.node != node.node) || (Number(node.group)!== 0 && hapcanMessage.group != node.group) )
                 return;
 
             if((node.channelFilter & (1 << (hapcanMessage.frame[7] - 1))) === 0)
@@ -196,6 +196,10 @@
             }
             
             hapcanMessage.channel = hapcanMessage.frame[7];
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, hapcanMessage.channel)
+            hapcanMessage.channelName = channelName
+            hapcanMessage.deviceName = deviceName
+
             switch( hapcanMessage.frame[9] )
             {
                 case 0x00 : hapcanMessage.led = 'OFF'; break;

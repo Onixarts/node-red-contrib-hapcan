@@ -193,7 +193,7 @@ module.exports = function(RED) {
         {            
             var hapcanMessage = data.payload;
 
-            if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
+            if( (Number(node.node)!== 0 && hapcanMessage.node != node.node) || (Number(node.group)!== 0 && hapcanMessage.group != node.group) )
                 return;
 
             hapcanMessage.type = hapcanMessage.frame[7];
@@ -204,6 +204,10 @@ module.exports = function(RED) {
             hapcanMessage.status = hapcanMessage.frame[8];
             hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
             hapcanMessage.channel = hapcanMessage.frame[7]; //always 1
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, hapcanMessage.channel)
+            hapcanMessage.channelName = channelName
+            hapcanMessage.deviceName = deviceName
+            
             hapcanMessage.userField = hapcanMessage.enabled ? node.userFieldStateON : node.userFieldStateOFF;
 
             node.send({topic: 'Dimmer message', payload: hapcanMessage});

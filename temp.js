@@ -20,13 +20,17 @@
         {            
             var hapcanMessage = data.payload;
 
-            if(hapcanMessage.node != node.node || hapcanMessage.group != node.group )
+            if( (Number(node.node)!== 0 && hapcanMessage.node != node.node) || (Number(node.group)!== 0 && hapcanMessage.group != node.group) )
                 return;
             
             hapcanMessage.type = hapcanMessage.frame[7];
 
             if( hapcanMessage.type !== 0x11 && hapcanMessage.type !== 0x01)
                 return;
+
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 1)
+            hapcanMessage.channelName = channelName
+            hapcanMessage.deviceName = deviceName
 
             hapcanMessage.temp = Number(Number(((hapcanMessage.frame[8] * 256) + hapcanMessage.frame[9]) * 0.0625).toFixed(1));
             hapcanMessage.setpoint = Number(Number(((hapcanMessage.frame[10] * 256) + hapcanMessage.frame[11]) * 0.0625).toFixed(2));
