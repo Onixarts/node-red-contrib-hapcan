@@ -518,7 +518,7 @@ module.exports = function (RED) {
             //var responseChannel = hapcanMessage.frame[5] >>> 3
             //var frameNumber = hapcanMessage.frame[5] & 0x07
 
-            node.channelDescription += hapcanMessage.frame.slice(6,13).toString().replace(/\x00/g,'') 
+            node.channelDescription += hapcanMessage.frame.slice(6,13).filter((e)=> e >= 32 && e < 127).toString()
             node.channelDescriptionFramesReceived++;
         }        
 
