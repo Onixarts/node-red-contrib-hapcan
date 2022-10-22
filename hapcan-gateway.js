@@ -387,17 +387,24 @@ module.exports = function (RED) {
                 this.firmwareVersion = 0
                 this.channels = []
             }
-            initChannels(count)
+
+            initChannels(type, icon, count)
             {
                 this.channels = []
+                this.addChannels(type, icon, count)
+            }
+            addChannels(type, icon, count)
+            {
                 for(let i = 0; i < count; i++)
-                    this.channels.push(new HapcanDeviceChannel(`channel_${i+1}`))
+                    this.channels.push(new HapcanDeviceChannel(type, icon, `${type}_${i+1}`))
             }
         }
 
         class HapcanDeviceChannel {
-            constructor(name)
+            constructor(type, icon, name)
             {
+                this.icon = icon
+                this.type = type
                 this.name = name
             }
         }
@@ -462,22 +469,22 @@ module.exports = function (RED) {
                             case 3:
                                 switch(Number(device.applicationVersion))
                                 {
-                                    case 0: device.initChannels(8); break;
-                                    case 1: device.initChannels(13); break;
-                                    case 2: device.initChannels(6); break;
-                                    case 3: device.initChannels(14); break;
+                                    case 0: device.initChannels('button', 'fa-hand-o-down', 8); break;
+                                    case 1: device.initChannels('button', 'fa-hand-o-down', 13); device.addChannels('temperature', 'fa-thermometer-half', 1); break;
+                                    case 2: device.initChannels('button', 'fa-hand-o-down', 6); device.addChannels('temperature', 'fa-thermometer-half', 1); break;
+                                    case 3: device.initChannels('button', 'fa-hand-o-down', 14); device.addChannels('temperature', 'fa-thermometer-half', 1); break;
                                 }
                                 break
                         }
                 break
-                case 0x02: device.applicationTypeString = 'Relay'; device.applicationTypeIcon = 'fa-power-off'; device.initChannels(6); break
-                case 0x03: device.applicationTypeString = 'IR Receiver'; device.applicationTypeIcon = 'fa-feed'; break
-                case 0x04: device.applicationTypeString = 'Temp. sensor'; device.applicationTypeIcon = 'fa-thermometer-half'; break
-                case 0x05: device.applicationTypeString = 'IR transmitter'; device.applicationTypeIcon = 'fa-feed'; device.initChannels(1); break
-                case 0x06: device.applicationTypeString = 'Dimmer'; device.applicationTypeIcon = 'fa-lightbulb-o'; device.initChannels(1); break
-                case 0x07: device.applicationTypeString = 'Blind controller'; device.applicationTypeIcon = 'fa-bars'; device.initChannels(3); break
-                case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; device.initChannels(4); break
-                case 0x09: device.applicationTypeString = 'Open collector'; device.applicationTypeIcon = 'fa-external-link'; device.initChannels(10); break
+                case 0x02: device.applicationTypeString = 'Relay'; device.applicationTypeIcon = 'fa-power-off'; device.initChannels('relay', 'fa-power-off', 6); break
+                //case 0x03: device.applicationTypeString = 'IR Receiver'; device.applicationTypeIcon = 'fa-feed'; break
+                //case 0x04: device.applicationTypeString = 'Temp. sensor'; device.applicationTypeIcon = 'fa-thermometer-half'; break
+                case 0x05: device.applicationTypeString = 'IR transmitter'; device.applicationTypeIcon = 'fa-feed'; device.initChannels('ir', 'fa-feed', 1); break
+                case 0x06: device.applicationTypeString = 'Dimmer'; device.applicationTypeIcon = 'fa-lightbulb-o'; device.initChannels('dimmer', 'fa-lightbulb-o', 1); break
+                case 0x07: device.applicationTypeString = 'Blind controller'; device.applicationTypeIcon = 'fa-bars'; device.initChannels('blind', 'fa-bars', 3); break
+                case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; device.initChannels('rgb', 'fa-play-circle-o', 3); device.addChannels('master', 'fa-stop-circle-o', 1); break
+                case 0x09: device.applicationTypeString = 'Open collector'; device.applicationTypeIcon = 'fa-external-link'; device.initChannels('oc', 'fa-external-link', 10); break
                 
                 default:
                     device.hardwareTypeString = 'Custom device'

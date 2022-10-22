@@ -41,7 +41,7 @@
                         device.channels = []
                     for(let i = 0; i < device.channels.length; i++)
                     {
-                        channelsRowContent += `<li id="hapcan-device-${device.id}-channel-${i}">#${i+1} ${device.channels[i].name}</li>`
+                        channelsRowContent += `<li id="hapcan-device-${device.id}-channel-${i}"><i class="fa ${device.channels[i].icon}"></i> ${i+1}. ${device.channels[i].name}</li>`
                     }
 
                     var row = `<td><span class="caret"> <i class="fa ${device.applicationTypeIcon}"></i> ${device.description} (${device.node}, ${device.group})</span>
