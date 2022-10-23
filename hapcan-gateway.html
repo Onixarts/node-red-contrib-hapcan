@@ -155,6 +155,7 @@
                                     }
                                     else
                                         continue
+                                    break
                                 default:
                                     continue;
                             }
@@ -169,7 +170,7 @@
                                 // don't ask for other channels (only main device channels have a name)
                                 if(channelType !== device.channels[j-1].type)
                                     break;
-                                    
+
                                 if(emptyAnswerCount > 2)
                                 {
                                     break; //if empty response occured 2 times, propably device does not support 0x117 frame
