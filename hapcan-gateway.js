@@ -239,7 +239,7 @@ module.exports = function (RED) {
         }
 
         async function waitForChannelDescriptionResponseAsync(){
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < 10; i++) {
                 await sleep(100);
                 if(node.channelDescriptionFramesReceived === 5)
                     return
@@ -322,7 +322,7 @@ module.exports = function (RED) {
             catch(e)
             {
                 console.log(e)
-                res.status(408)
+                res.json('{}')
                 return
             }
     
