@@ -160,8 +160,16 @@
                             }
                                 
                             let emptyAnswerCount = 0
+                            let channelType = ''
                             for(var j = 1;j < device.channels.length+1; j++)
                             {
+                                if( j === 1 )
+                                    channelType = device.channels[j-1].type
+                                
+                                // don't ask for other channels (only main device channels have a name)
+                                if(channelType !== device.channels[j-1].type)
+                                    break;
+                                    
                                 if(emptyAnswerCount > 2)
                                 {
                                     break; //if empty response occured 2 times, propably device does not support 0x117 frame
