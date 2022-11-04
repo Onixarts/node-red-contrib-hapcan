@@ -241,7 +241,7 @@ module.exports = function (RED) {
         }
 
         async function waitForChannelDescriptionResponseAsync(){
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < 30; i++) {
                 await sleep(100);
                 if(node.channelDescriptionFramesReceived === 5)
                     return
