@@ -41,7 +41,7 @@
                         device.channels = []
                     for(let i = 0; i < device.channels.length; i++)
                     {
-                        channelsRowContent += `<li id="hapcan-device-${device.id}-channel-${i}"><i class="fa ${device.channels[i].icon}"></i> ${i+1}. ${device.channels[i].name}</li>`
+                        channelsRowContent += `<li id="hapcan-device-${device.id}-channel-${i}"><i class="fa ${device.channels[i].icon}"></i> ${i+1}. <input node="${device.node}" group="${device.group}" channel="${i}" type="text" placeholder="${device.channels[i].name}" value="${device.channels[i].customName}"></li>`
                     }
 
                     var row = `<td><span class="caret"> <i class="fa ${device.applicationTypeIcon}"></i> ${device.description} (${device.node}, ${device.group})</span>
@@ -220,6 +220,23 @@
         },
         oneditsave: function(){
             this.debugmode = $("#node-input-debugmode").is(":checked") ? true : false;
+            
+            let config = this
+            $('#hapcan-devices input').each(function(index){
+                let node = $(this).attr('node')
+                let group = $(this).attr('group')
+
+                let deviceIdx = config.devices.findIndex(dev => {return dev.node ==  node && dev.group == group } )
+                if(deviceIdx)
+                {
+                    let channel = $(this).attr('channel')
+                    if( channel !== undefined && Number(channel) >= 0 && Number(channel) < config.devices[deviceIdx].channels.length )
+                    {
+                        config.devices[deviceIdx].channels[channel].customName = this.value
+                    }
+                }
+            })
+
             cleanUp()
         },
         oneditcancel: function(){
@@ -327,6 +344,12 @@
             
             #hapcan-devices .active {
                 display: block;
+            }
+
+            #hapcan-devices input {
+                font-size: 100%;
+                height: 26px;
+                margin: 2px 0px;
             }
 
         </style>

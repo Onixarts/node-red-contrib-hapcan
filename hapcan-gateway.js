@@ -172,7 +172,9 @@ module.exports = function (RED) {
                     return null
                 }
                 
-                let channelName = device.channels[channelNumber-1].name
+                let channelName = device.channels[channelNumber-1].customName
+                if(channelName === undefined || channelName === '')
+                    channelName = device.channels[channelNumber-1].name
                 if(channelName !== '')
                     deviceInfo.channelName = channelName
             }
@@ -406,6 +408,7 @@ module.exports = function (RED) {
                 this.icon = icon
                 this.type = type
                 this.name = name
+                this.customName = ''
             }
         }
 
