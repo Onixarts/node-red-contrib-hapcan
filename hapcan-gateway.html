@@ -227,7 +227,7 @@
                 let group = $(this).attr('group')
 
                 let deviceIdx = config.devices.findIndex(dev => {return dev.node ==  node && dev.group == group } )
-                if(deviceIdx)
+                if(deviceIdx >= 0)
                 {
                     let channel = $(this).attr('channel')
                     if( channel !== undefined && Number(channel) >= 0 && Number(channel) < config.devices[deviceIdx].channels.length )
