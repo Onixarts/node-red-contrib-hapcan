@@ -145,13 +145,13 @@ module.exports = function (RED) {
             }
         }
 
-        this.getDeviceInfo = function(nodeNumber, groupNumber, channelNumber)
+        this.getDeviceInfo = function(nodeNumber, groupNumber, channelType, channelNumber)
         {
             var deviceId = ('00'+ nodeNumber.toString(16)).substr(-2).toUpperCase() + ('00'+ groupNumber.toString(16)).substr(-2).toUpperCase()
             var device = node.devices.find( v => v.id === deviceId )
             let deviceInfo = {
                 deviceName: `device_${deviceId}`,
-                channelName: `channel_${channelNumber}`
+                channelName: `${channelType === null ? 'unknown_channel' : channelType}_${channelNumber}`
             }
 
             if(device !== undefined)
@@ -159,24 +159,34 @@ module.exports = function (RED) {
 
                 if(device.description !== '')
                     deviceInfo.deviceName = device.description
+                    
+                if(channelType !== null)
+                {
+                    if(channelNumber<1)
+                    {
+                        node.error(`Channel number must be 1 or more`)
+                        return null
+                    }
+                
+                    let typedChannels = device.channels.filter((channel)=> channel.type === channelType)
+                    if( typedChannels.length === 0 )
+                    {
+                        node.error(`Channel type (${channelType}) not found in device ${deviceId}`)
+                        return null
+                    }
 
-                if(channelNumber<1)
-                {
-                    node.error(`Channel number must be 1 or more`)
-                    return null
+                    if(typedChannels.length > 0 && channelNumber > typedChannels.length)
+                    {
+                        node.error(`Channel number of type (${channelType}) must be less than device available channels count (${typedChannels.length})`)
+                        return null
+                    }
+                    
+                    let channelName = typedChannels[channelNumber-1].customName
+                    if(channelName === undefined || channelName === '')
+                        channelName = typedChannels[channelNumber-1].name
+                    if(channelName !== '')
+                        deviceInfo.channelName = channelName
                 }
-                
-                if(device.channels.length > 0 && channelNumber > device.channels.length)
-                {
-                    node.error(`Channel number must be less than device available channels count (${device.channels.count})`)
-                    return null
-                }
-                
-                let channelName = device.channels[channelNumber-1].customName
-                if(channelName === undefined || channelName === '')
-                    channelName = device.channels[channelNumber-1].name
-                if(channelName !== '')
-                    deviceInfo.channelName = channelName
             }
             return deviceInfo
         }
@@ -473,9 +483,17 @@ module.exports = function (RED) {
                                 switch(Number(device.applicationVersion))
                                 {
                                     case 0: device.initChannels('button', 'fa-hand-o-down', 8); break;
-                                    case 1: device.initChannels('button', 'fa-hand-o-down', 13); device.addChannels('temperature', 'fa-thermometer-half', 1); break;
-                                    case 2: device.initChannels('button', 'fa-hand-o-down', 6); device.addChannels('temperature', 'fa-thermometer-half', 1); break;
-                                    case 3: device.initChannels('button', 'fa-hand-o-down', 14); device.addChannels('temperature', 'fa-thermometer-half', 1); break;
+                                    case 1: device.initChannels('button', 'fa-hand-o-down', 13); 
+                                            device.addChannels('temperature', 'fa-thermometer-half', 1); 
+                                            break;
+                                    case 2: device.initChannels('button', 'fa-hand-o-down', 6); 
+                                            device.addChannels('temperature', 'fa-thermometer-half', 1); 
+                                            device.addChannels('thermostat', 'fa-fire', 1); 
+                                            break;
+                                    case 3: device.initChannels('button', 'fa-hand-o-down', 14); 
+                                            device.addChannels('temperature', 'fa-thermometer-half', 1); 
+                                            device.addChannels('thermostat', 'fa-fire', 1); 
+                                            break;
                                 }
                                 break
                         }
@@ -486,7 +504,7 @@ module.exports = function (RED) {
                 case 0x05: device.applicationTypeString = 'IR transmitter'; device.applicationTypeIcon = 'fa-feed'; device.initChannels('ir', 'fa-feed', 1); break
                 case 0x06: device.applicationTypeString = 'Dimmer'; device.applicationTypeIcon = 'fa-lightbulb-o'; device.initChannels('dimmer', 'fa-lightbulb-o', 1); break
                 case 0x07: device.applicationTypeString = 'Blind controller'; device.applicationTypeIcon = 'fa-bars'; device.initChannels('blind', 'fa-bars', 3); break
-                case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; device.initChannels('rgb', 'fa-play-circle-o', 3); device.addChannels('master', 'fa-stop-circle-o', 1); break
+                case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; device.initChannels('rgb', 'fa-play-circle-o', 4); break
                 case 0x09: device.applicationTypeString = 'Open collector'; device.applicationTypeIcon = 'fa-external-link'; device.initChannels('oc', 'fa-external-link', 10); break
                 
                 default:

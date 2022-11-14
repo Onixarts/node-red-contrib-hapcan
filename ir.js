@@ -43,7 +43,7 @@ module.exports = function(RED) {
             hapcanMessage.address = hapcanMessage.frame[8];
             hapcanMessage.command = hapcanMessage.frame[9];
 
-            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 1)
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 'ir', 1)
             hapcanMessage.channelName = channelName
             hapcanMessage.deviceName = deviceName
 

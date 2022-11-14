@@ -25,7 +25,7 @@ module.exports = function (RED) {
 
             hapcanMessage.type = hapcanMessage.frame[7];
 
-            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 1)
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 'thermostat', 1)
             hapcanMessage.channelName = channelName
             hapcanMessage.deviceName = deviceName
 

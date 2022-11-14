@@ -172,7 +172,7 @@ module.exports = function(RED) {
                     hapcanMessage.move = 'undefined';
             }
             hapcanMessage.channel = hapcanMessage.frame[7];
-            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, hapcanMessage.channel)
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 'blind', hapcanMessage.channel)
             hapcanMessage.channelName = channelName
             hapcanMessage.deviceName = deviceName
 

@@ -146,7 +146,7 @@ module.exports = function(RED) {
             if( node.d7name !== '')
                 hapcanMessage[node.d7name] = hapcanMessage.frame[12];    
                 
-            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 1) // channel is unknown
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, null, 1) // channel is unknown
             //hapcanMessage.channelName = channelName
             hapcanMessage.deviceName = deviceName
 

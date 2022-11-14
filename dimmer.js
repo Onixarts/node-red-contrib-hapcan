@@ -204,7 +204,7 @@ module.exports = function(RED) {
             hapcanMessage.status = hapcanMessage.frame[8];
             hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
             hapcanMessage.channel = hapcanMessage.frame[7]; //always 1
-            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, hapcanMessage.channel)
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 'dimmer', hapcanMessage.channel)
             hapcanMessage.channelName = channelName
             hapcanMessage.deviceName = deviceName
             

@@ -249,7 +249,7 @@ module.exports = function(RED) {
 
             hapcanMessage.enabled = hapcanMessage.frame[8] === 0x00 ? false : true;
             hapcanMessage.channel = hapcanMessage.frame[7];
-            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, hapcanMessage.channel)
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 'rgb', hapcanMessage.channel)
             hapcanMessage.channelName = channelName
             hapcanMessage.deviceName = deviceName
             

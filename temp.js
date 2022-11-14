@@ -28,7 +28,7 @@
             if( hapcanMessage.type !== 0x11 && hapcanMessage.type !== 0x01)
                 return;
 
-            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 1)
+            let {deviceName, channelName} = node.gateway.getDeviceInfo(hapcanMessage.node, hapcanMessage.group, 'temperature', 1)
             hapcanMessage.channelName = channelName
             hapcanMessage.deviceName = deviceName
 
