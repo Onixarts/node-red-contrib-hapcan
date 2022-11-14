@@ -75,6 +75,21 @@
                 $(evt.currentTarget).toggleClass('caret-down')
             }
 
+            // hardwareVersion.applicationType.applicationVersion.firmwareVersion
+            frame0x117Support = [
+                [3,1,0,0],  // 8 CHANNEL DIN RAIL BOX BUTTON 
+                [3,1,2,1],  // 6 CHANNEL BACK BOX TOUCH BUTTON
+                [3,1,3,1],  // 14 CHANNEL BACK BOX BUTTON
+                [3,2,1,0],  // 5A MONOSTABLE RELAY
+                [3,2,2,0],  // 5A BISTABLE RELAY
+                [3,2,3,0],  // 16A MONOSTABLE RELAY
+                [3,2,4,3],  // 16A BISTABLE RELAY
+                [3,2,5,0],  // 6A MONOSTABLE RELAY
+                [3,5,0,3],  // INFRARED RECEIVER & TRANSMITTER
+                [3,6,0,2],  // DIMMER RC
+                [3,7,0,0],  // BLIND CONTROLLER for AC MOTORS
+            ]
+
             $('#discover-devices').click(async function(){
                 discovering = !discovering
                 if(discovering)
@@ -125,69 +140,57 @@
                             showDevices()
                         })
 
+
+
                         let devicesInGroup = config.devices.filter((d)=> d.group === i)
                         for(var k = 0; k < devicesInGroup.length; k++)
                         {
                             let device = devicesInGroup[k]
 
-                            //request only compatible devices...
-                            // hardwareVersion.applicationType.applicationVersion.firmwareVersion
-                            
-                            if(Number(device.hardwareVersion) !== 3) //UNIV3 only
-                                continue;
-                            
-                            switch(Number(device.applicationType))
-                            {
-                                case 1: //Button
-                                    if(Number(device.applicationVersion === 3)) //14 buttons
-                                    {
-                                        if(Number(device.firmwareVersion < 1)) // min firmware .1
-                                            continue
-                                    }
-                                    else
-                                        continue
-                                    break;
-                                case 2: //Relay
-                                    if(Number(device.applicationVersion === 4)) //PRZEKAŹNIK BISTABILNY 16A
-                                    {
-                                        if(Number(device.firmwareVersion < 3)) // min firmware .3
-                                            continue
-                                    }
-                                    else
-                                        continue
-                                    break
-                                default:
-                                    continue;
-                            }
-                                
-                            let emptyAnswerCount = 0
-                            let channelType = ''
-                            for(var j = 1;j < device.channels.length+1; j++)
-                            {
-                                if( j === 1 )
-                                    channelType = device.channels[j-1].type
-                                
-                                // don't ask for other channels (only main device channels have a name)
-                                if(channelType !== device.channels[j-1].type)
-                                    break;
+                            //request channel name for compatible devices only...
+                            if(frame0x117Support.some((minimalDevice)=>{
+                                if( device.hardwareVersion !== minimalDevice[0] )
+                                    return false
+                                if(device.applicationType !== minimalDevice[1])
+                                    return false
+                                if(device.applicationVersion !== minimalDevice[2])
+                                    return false
+                                if(device.firmwareVersion < minimalDevice[3])
+                                    return false
 
-                                if(emptyAnswerCount > 2)
+                                return true
+                            }))
+                            {
+                                console.log(`${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion}`)
+                                let emptyAnswerCount = 0
+                                let channelType = ''
+                                for(var j = 1;j < device.channels.length+1; j++)
                                 {
-                                    break; //if empty response occured 2 times, propably device does not support 0x117 frame
-                                }
-                                await $.getJSON(`hapcan-device-channel-description/${config.id}/${device.node}/${device.group}/${j}`, function(channelData)
-                                {
-                                    var channel = JSON.parse(channelData)
-                                    if(channel.name !== undefined )
-                                    {
-                                        if(channel.name !== '')
-                                        device.channels[j-1].name = channel.name
+                                    if( j === 1 )
+                                        channelType = device.channels[j-1].type
                                     
-                                        showDevices()
+                                    // don't ask for other channels (only main device channels have a name)
+                                    if(channelType !== device.channels[j-1].type)
+                                        break;
+
+                                    if(emptyAnswerCount > 2)
+                                    {
+                                        break; //if empty response occured 2 times, propably device does not support 0x117 frame
                                     }
-                                    else 
-                                        emptyAnswerCount++
-                                })
+                                    await $.getJSON(`hapcan-device-channel-description/${config.id}/${device.node}/${device.group}/${j}`, function(channelData)
+                                    {
+                                        var channel = JSON.parse(channelData)
+                                        if(channel.name !== undefined )
+                                        {
+                                            if(channel.name !== '')
+                                            device.channels[j-1].name = channel.name
+                                        
+                                            showDevices()
+                                        }
+                                        else 
+                                            emptyAnswerCount++
+                                    })
+                                }
                             }
                         }
 
