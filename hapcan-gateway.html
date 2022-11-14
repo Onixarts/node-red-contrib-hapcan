@@ -134,7 +134,7 @@
                                     if(foundDevice.firmwareVersion !== 0)  
                                         device.firmwareVersion = foundDevice.firmwareVersion
                                     
-                                    device.channels = [...foundDevice.channels]
+                                    //device.channels = [...foundDevice.channels]
                                 }
                             })
                             showDevices()
@@ -161,7 +161,7 @@
                                 return true
                             }))
                             {
-                                console.log(`${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion}`)
+                                //console.log(`${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion}`)
                                 let emptyAnswerCount = 0
                                 let channelType = ''
                                 for(var j = 1;j < device.channels.length+1; j++)
