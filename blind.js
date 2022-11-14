@@ -161,7 +161,7 @@ module.exports = function(RED) {
                 return;
 
             hapcanMessage.status = hapcanMessage.frame[8];
-            hapcanMessage.statusPercent = Number((100 * hapcanMessage.frame[8]) / 255).toFixed(0);
+            hapcanMessage.statusPercent = Number(Number((100 * hapcanMessage.frame[8]) / 255).toFixed(0));
             switch(hapcanMessage.frame[9])
             {
                 case 0x00: hapcanMessage.move = 'STOPPED'; break;
