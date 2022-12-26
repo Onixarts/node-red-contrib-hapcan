@@ -30,7 +30,7 @@
                     $('#discover-devices').trigger('click')
                 $('#discover-devices').off('click')
                 $('#clear-devices').off('click')
-                $(`#hapcan-devices table .caret`).off('click')
+                $(`#hapcan-devices .caret`).off('click')
             }
 
             showDevices = function(){
@@ -44,38 +44,68 @@
                         channelsRowContent += `<li id="hapcan-device-${device.id}-channel-${i}"><i class="fa ${device.channels[i].icon}"></i> ${i+1}. <input node="${device.node}" group="${device.group}" channel="${i}" type="text" placeholder="${device.channels[i].name}" value="${device.channels[i].customName}"></li>`
                     }
 
-                    var row = `<td><span class="caret"> <i class="fa ${device.applicationTypeIcon}"></i> ${device.description} (${device.node}, ${device.group})</span>
-                                <ul class="nested">${channelsRowContent}</ul>
-                                </td>
-                                <td>${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion} ${device.applicationTypeString}</td>
-                                <td>${device.hardwareTypeString}</td>`
+                    var row = `<div><span class="caret"> <i class="fa ${device.applicationTypeIcon}"></i> ${device.description} (${device.node}, ${device.group})</span>
+                                    <ul class="nested">${channelsRowContent}</ul>
+                                </div>
+                                <div>${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion} ${device.applicationTypeString}</div>
+                                <div>${device.hardwareTypeString}</div>
+                                <div><a class="hapcan-device-action hapcan-device-action-refresh" href="#"><i class="fa fa-refresh"></i></a></div>
+                                <div><a class="hapcan-device-action hapcan-device-action-delete" href="#"><i class="fa fa-trash-o"></i></a></div>`
 
 
-                    var tableRow = $(`#hapcan-devices table #hapcan-device-${device.id}`)
+                    var tableRow = $(`#hapcan-devices #hapcan-device-${device.id}`)
 
                     if(tableRow.length)
                     {
                         tableRow.children('.caret').off('click')
+                        $(`#hapcan-devices #hapcan-device-${device.id} .hapcan-device-action-refresh`).off('click', onDeviceRefreshClick)
+                        $(`#hapcan-devices #hapcan-device-${device.id} .hapcan-device-action-delete`).off('click', onDeviceDeleteClick)
                         tableRow.html(row)
                     }
                     else
                     {
-                        $("#hapcan-devices table tr:last").after(`<tr id="hapcan-device-${device.id}">${row}</tr>`)
-                    }
+                        $("#hapcan-devices > div:last").after(`<div id="hapcan-device-${device.id}" class="hapcan-device" hapcan-device-id="${device.id}">${row}</div>`)
 
-                    tableRow = $(`#hapcan-devices table #hapcan-device-${device.id} .caret`)
+                    }
+                    
+                    tableRow = $(`#hapcan-devices #hapcan-device-${device.id} .caret`)
                     tableRow.on('click', onCaretClick)
 
+                    $(`#hapcan-devices #hapcan-device-${device.id} .hapcan-device-action-refresh`).on('click', onDeviceRefreshClick)
+                    $(`#hapcan-devices #hapcan-device-${device.id} .hapcan-device-action-delete`).on('click', onDeviceDeleteClick)
+                
                 })
             }
             
+            onDeviceRefreshClick = function(evt)
+            {
+                // $(evt.currentTarget).parent().children('.nested').toggleClass('active')
+                // $(evt.currentTarget).toggleClass('caret-down')
+            }
+
+            onDeviceDeleteClick = function(evt)
+            {
+                let deviceId = $(evt.currentTarget).closest('.hapcan-device').attr('hapcan-device-id')
+                var deviceIdx = config.devices.findIndex( v => v.id === deviceId )
+                if(deviceIdx > -1)
+                {
+                    config.devices.splice(deviceIdx, 1)
+                    var tableRow = $(`#hapcan-devices #hapcan-device-${deviceId}`)
+                    tableRow.children('.caret').off('click')
+                    $(`#hapcan-devices #hapcan-device-${deviceId} .hapcan-device-action-refresh`).off('click', onDeviceRefreshClick)
+                    $(`#hapcan-devices #hapcan-device-${deviceId} .hapcan-device-action-delete`).off('click', onDeviceDeleteClick)
+                    tableRow.remove()
+
+                }
+            }                        
+
             onCaretClick = function(evt)
             {
                 $(evt.currentTarget).parent().children('.nested').toggleClass('active')
                 $(evt.currentTarget).toggleClass('caret-down')
             }
 
-            // hardwareVersion.applicationType.applicationVersion.firmwareVersion
+            // [hardwareVersion, applicationType, applicationVersion, firmwareVersion]
             frame0x117Support = [
                 [3,1,0,0],  // 8 CHANNEL DIN RAIL BOX BUTTON 
                 [3,1,2,1],  // 6 CHANNEL BACK BOX TOUCH BUTTON
@@ -88,13 +118,15 @@
                 [3,5,0,3],  // INFRARED RECEIVER & TRANSMITTER
                 [3,6,0,2],  // DIMMER RC
                 [3,7,0,0],  // BLIND CONTROLLER for AC MOTORS
+                [3,8,0,0],  // RGB LED CONTROLLER
+                [3,9,0,0],  // 10 CHANNEL OPEN COLLECTOR 
             ]
 
             $('#discover-devices').click(async function(){
                 discovering = !discovering
                 if(discovering)
                 {
-                    $('#hapcan-devices table tr:not(:first-child)').addClass('hapcan-device-need-refresh').removeClass('hapcan-device-not-found')
+                    $('#hapcan-devices > div:not(:first-child)').addClass('hapcan-device-need-refresh').removeClass('hapcan-device-not-found')
 
                     $(this).html('<i class="fa fa-refresh fa-spin"></i> Updating device list... (click to stop)')
                     
@@ -112,7 +144,7 @@
                                 }
                                 else
                                 {
-                                    $(`#hapcan-devices table #hapcan-device-${device.id}`).removeClass('hapcan-device-need-refresh')
+                                    $(`#hapcan-devices #hapcan-device-${device.id}`).removeClass('hapcan-device-need-refresh')
                                     if(foundDevice.description !== '') 
                                         device.description = foundDevice.description
                                     if(foundDevice.serialNumber !== 0)
@@ -205,7 +237,7 @@
                     $(this).html('<i class="fa fa-refresh"></i> Discover/Refresh devices')
                 }
                 
-                $('#hapcan-devices table tr:not(:first-child)')
+                $('#hapcan-devices > div:not(:first-child)')
                     .filter(function(){return $(this).hasClass('hapcan-device-need-refresh')})
                         .addClass('hapcan-device-not-found')
                         .removeClass('hapcan-device-need-refresh')
@@ -214,8 +246,8 @@
             $('#clear-devices').click(async function()
             {
                 config.devices = [];
-                $(`#hapcan-devices table .caret`).off('click', onCaretClick)
-                $('#hapcan-devices table tr:not(:first-child)').remove()
+                $(`#hapcan-devices .caret`).off('click', onCaretClick)
+                $('#hapcan-devices > div:not(:first-child)').remove()
                 $('#hapcan-discover-progressbar div').css('width', '0%' )
             })
 
@@ -282,17 +314,28 @@
     </div>
 
     <style>
-            #hapcan-devices table {
+            #hapcan-devices {
                 width: 98%;
                 font-size: 12px;
                 text-align: left;
+                display: table;
             }
-            #hapcan-devices table td{
+            #hapcan-devices > div {
+                display: table-row;
+            }
+
+            #hapcan-devices > div > div {
                 padding-right: 16px;
                 vertical-align: top;
+                display: table-cell;
             }
-            #hapcan-devices table tr:hover td{
+
+            #hapcan-devices > div:hover {
                 background-color: #eee;
+            }
+
+            #hapcan-devices > div:hover .hapcan-device-action {
+                visibility: visible;
             }
     
             #hapcan-discover-progressbar {
@@ -355,6 +398,10 @@
                 margin: 2px 0px;
             }
 
+            .hapcan-device-action {
+                visibility: hidden;
+            }
+
         </style>
 
     <div class="form-row">
@@ -366,13 +413,15 @@
     </div>    
 
     <div class="form-row" id="hapcan-devices">
-        <table>
-            <tr>
-                <th style="width: auto;">Description (Node, Group)</th>
-                <th style="width: 140px;">Firmware</th>
-                <th style="width: 90px;">Hardware</th>
-            </tr>
-        </table>
+        
+            <div>
+                <div style="width: auto;">Description (Node, Group)</div>
+                <div style="width: 140px;">Firmware</div>
+                <div style="width: 70px;">Hardware</div>
+                <div style="width: 10px;"></div>
+                <div style="width: 10px;"></div>
+            </div>
+        
     </div>
 
 </script>
