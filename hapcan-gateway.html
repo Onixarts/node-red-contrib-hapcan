@@ -79,8 +79,18 @@
             
             onDeviceRefreshClick = function(evt)
             {
-                // $(evt.currentTarget).parent().children('.nested').toggleClass('active')
-                // $(evt.currentTarget).toggleClass('caret-down')
+                let deviceId = $(evt.currentTarget).closest('.hapcan-device').attr('hapcan-device-id')
+                var deviceIdx = config.devices.findIndex( v => v.id === deviceId )
+                // if(deviceIdx > -1)
+                // {
+                //     config.devices.splice(deviceIdx, 1)
+                //     var tableRow = $(`#hapcan-devices #hapcan-device-${deviceId}`)
+                //     tableRow.children('.caret').off('click')
+                //     $(`#hapcan-devices #hapcan-device-${deviceId} .hapcan-device-action-refresh`).off('click', onDeviceRefreshClick)
+                //     $(`#hapcan-devices #hapcan-device-${deviceId} .hapcan-device-action-delete`).off('click', onDeviceDeleteClick)
+                //     tableRow.remove()
+
+                // }
             }
 
             onDeviceDeleteClick = function(evt)
@@ -104,23 +114,6 @@
                 $(evt.currentTarget).parent().children('.nested').toggleClass('active')
                 $(evt.currentTarget).toggleClass('caret-down')
             }
-
-            // [hardwareVersion, applicationType, applicationVersion, firmwareVersion]
-            frame0x117Support = [
-                [3,1,0,0],  // 8 CHANNEL DIN RAIL BOX BUTTON 
-                [3,1,2,1],  // 6 CHANNEL BACK BOX TOUCH BUTTON
-                [3,1,3,1],  // 14 CHANNEL BACK BOX BUTTON
-                [3,2,1,0],  // 5A MONOSTABLE RELAY
-                [3,2,2,0],  // 5A BISTABLE RELAY
-                [3,2,3,0],  // 16A MONOSTABLE RELAY
-                [3,2,4,3],  // 16A BISTABLE RELAY
-                [3,2,5,0],  // 6A MONOSTABLE RELAY
-                [3,5,0,3],  // INFRARED RECEIVER & TRANSMITTER
-                [3,6,0,2],  // DIMMER RC
-                [3,7,0,0],  // BLIND CONTROLLER for AC MOTORS
-                [3,8,0,0],  // RGB LED CONTROLLER
-                [3,9,0,0],  // 10 CHANNEL OPEN COLLECTOR 
-            ]
 
             $('#discover-devices').click(async function(){
                 discovering = !discovering
@@ -166,65 +159,10 @@
                                     if(foundDevice.firmwareVersion !== 0)  
                                         device.firmwareVersion = foundDevice.firmwareVersion
                                     
-                                    //device.channels = [...foundDevice.channels]
                                 }
                             })
                             showDevices()
                         })
-
-
-
-                        let devicesInGroup = config.devices.filter((d)=> d.group === i)
-                        for(var k = 0; k < devicesInGroup.length; k++)
-                        {
-                            let device = devicesInGroup[k]
-
-                            //request channel name for compatible devices only...
-                            if(frame0x117Support.some((minimalDevice)=>{
-                                if( device.hardwareVersion !== minimalDevice[0] )
-                                    return false
-                                if(device.applicationType !== minimalDevice[1])
-                                    return false
-                                if(device.applicationVersion !== minimalDevice[2])
-                                    return false
-                                if(device.firmwareVersion < minimalDevice[3])
-                                    return false
-
-                                return true
-                            }))
-                            {
-                                //console.log(`${device.hardwareVersion}.${device.applicationType}.${device.applicationVersion}.${device.firmwareVersion}`)
-                                let emptyAnswerCount = 0
-                                let channelType = ''
-                                for(var j = 1;j < device.channels.length+1; j++)
-                                {
-                                    if( j === 1 )
-                                        channelType = device.channels[j-1].type
-                                    
-                                    // don't ask for other channels (only main device channels have a name)
-                                    if(channelType !== device.channels[j-1].type)
-                                        break;
-
-                                    if(emptyAnswerCount > 2)
-                                    {
-                                        break; //if empty response occured 2 times, propably device does not support 0x117 frame
-                                    }
-                                    await $.getJSON(`hapcan-device-channel-description/${config.id}/${device.node}/${device.group}/${j}`, function(channelData)
-                                    {
-                                        var channel = JSON.parse(channelData)
-                                        if(channel.name !== undefined )
-                                        {
-                                            if(channel.name !== '')
-                                            device.channels[j-1].name = channel.name
-                                        
-                                            showDevices()
-                                        }
-                                        else 
-                                            emptyAnswerCount++
-                                    })
-                                }
-                            }
-                        }
 
                         if(!discovering)
                             return                            

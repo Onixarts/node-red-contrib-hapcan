@@ -239,145 +239,310 @@ module.exports = function (RED) {
         node.setConnectionStatus(ConnectionStatus.notConnected);
         node.connect();
 
-        this.requestIdGroup = 0
-        this.foundDevicesInGroup = 0
-        this.firmwareResponseInGroup = 0
         this.channelDescription = ''
-        this.channelDescriptionFramesReceived = 0
-        
 
         function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+            return new Promise(timerResolve => setTimeout(timerResolve, ms));
         }
 
-        async function waitForChannelDescriptionResponseAsync(){
-            for (let i = 0; i < 30; i++) {
-                await sleep(100);
-                if(node.channelDescriptionFramesReceived === 5)
-                    return
-            }
-            throw new Error(`Timeout while requesting node channel description`)
-        }
+        async function receiveIdResponseFromGroupAsync(group){
+            let devicesFound = []
 
-        async function waitForNewDevicesAsync(){
-            let previousFoundDevicesCount = node.foundDevicesInGroup
-            try{
-                
-                for (let i = 0; i < 30; i++) {
-                    await sleep(100);
-                    let currentDevicesFound = node.foundDevicesInGroup
-                    if(currentDevicesFound === previousFoundDevicesCount)
-                        break
-                    previousFoundDevicesCount = currentDevicesFound
-                }
-            }
-            catch(e)
-            {
-                console.log(e)
-            }
-        }
-
-        async function waitForFirmwareResponseAsync(){
-            let previousFirmwareResponsesInGroup = node.firmwareResponsesInGroup
-            try{
-                
-                for (let i = 0; i < 30; i++) {
-                    await sleep(100);
-                    let currentResponsesCount = node.firmwareResponsesInGroup
-                    if(currentResponsesCount === previousFirmwareResponsesInGroup || currentResponsesCount === node.foundDevicesInGroup )
-                        break
-                    previousFirmwareResponsesInGroup = currentResponsesCount
-                }
-            }
-            catch(e)
-            {
-                console.log(e)
-            }
-        }
-
-        async function waitForDescriptionResponseAsync(){
-            let previousDescriptionResponsesInGroup = node.descriptionResponsesInGroup
-            try{
-                
-                for (let i = 0; i < 30; i++) {
-                    await sleep(200);
-                    let currentResponsesCount = node.descriptionResponsesInGroup
-                    if(currentResponsesCount === previousDescriptionResponsesInGroup || currentResponsesCount === node.foundDevicesInGroup )
-                        break
-                    previousDescriptionResponsesInGroup = currentResponsesCount
-                }
-            }
-            catch(e)
-            {
-                console.log(e)
-            }
-        }
-
-        RED.httpAdmin.get("/hapcan-device-channel-description/:id/:node/:group/:channel", RED.auth.needsPermission('serial.read'), async function(req,res) {
+            const messageReceived_103 = function(data){
             
-            var node = RED.nodes.getNode(req.params.id);
- 
-            try{
-                node.requestIdGroup = Number(req.params.group)
-                var nodeNumber = Number(req.params.node)
-                var channel = Number(req.params.channel)
+                var hapcanMessage = data.payload
+                if(group !== Number(hapcanMessage.group))
+                    return;
+    
+                var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
+                var device = devicesFound.find( v => v.id === deviceId )
+                if( device === undefined )
+                {
+                    device = new HapcanDevice(deviceId)
+                    devicesFound.push(device)
+                }
 
-                node.channelDescription = ''
-                node.channelDescriptionFramesReceived = 0
+                device.node = hapcanMessage.node
+                device.group = hapcanMessage.group
+                device.serialNumber = '0x' + ('00000000' + ((hapcanMessage.frame[9]<<24)+(hapcanMessage.frame[10]<<16)+(hapcanMessage.frame[11]<<8)+hapcanMessage.frame[12]).toString(16)).substr(-8).toUpperCase()
+                device.hardwareType = (hapcanMessage.frame[5]<<8)+hapcanMessage.frame[6]
+                switch(device.hardwareType)
+                {
+                    case 0x1000: device.hardwareTypeString = 'UNIV 1'; break
+                    case 0x3000: device.hardwareTypeString = 'UNIV 3'; break
+                    case 0x4F41: device.hardwareTypeString = 'Hapcanuino'; break
+                    default:
+                        device.hardwareTypeString = 'unknown'
+                }
+            }
 
-                // request channel description from node
-                var msg = Buffer.from([0xAA, 0x11, 0x70, node.node,node.group, channel, 0xFF, nodeNumber, req.params.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-                node.send({payload: msg})
-                
-                await waitForChannelDescriptionResponseAsync()
+            node.eventEmitter.on('messageReceived_103', messageReceived_103)
+
+            try {
+                let previousLoopDevicesResponseCount = 0
+                let retryCount = 4
+                do {
+                    await sleep(25);
+
+                    if(previousLoopDevicesResponseCount === devicesFound.length)
+                        retryCount--
+                    else
+                        retryCount = 3
+
+                    previousLoopDevicesResponseCount = devicesFound.length
+                } while (retryCount > 0)
+
             }
             catch(e)
             {
                 console.log(e)
-                res.json('{}')
-                return
             }
+            finally
+            {
+                node.eventEmitter.off('messageReceived_103', messageReceived_103)
+            }
+
+            return devicesFound
+        }
+
+        function fetchFirmwareFromDeviceAsync(gatewayNode, device, timeout)
+        {
+            // request firmware type from node
+            var msg = Buffer.from([0xAA, 0x10, 0x60, gatewayNode.node, gatewayNode.group, 0xFF,0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            gatewayNode.send({payload: msg})
+            
+            return new Promise((resolve, reject)=>
+            {
+                let timeoutTimer = setTimeout(()=>
+                {
+                    gatewayNode.eventEmitter.off('messageReceived_106', messageReceived_106 )
+                    reject(`Timeout occured (${timeout} ms)`)
+                }
+                , timeout)
+
+                function messageReceived_106(data)
+                {
+                    var hapcanMessage = data.payload
+                    if(device.group !== Number(hapcanMessage.group) || device.node !== Number(hapcanMessage.node))
+                        return;
+                                        
+                    //console.log(`device firmware responsefor node: ${hapcanMessage.node}`)
+
+                    device.hardwareVersion = hapcanMessage.frame[7]
+                    device.applicationType = hapcanMessage.frame[8]
+                    device.applicationVersion = hapcanMessage.frame[9]
+                    device.firmwareVersion = hapcanMessage.frame[10]
+
+                    switch(device.applicationType)
+                    {
+                        case 0x01: device.applicationTypeString = 'Button'; device.applicationTypeIcon = 'fa-hand-o-down';
+                                switch(Number(device.hardwareVersion))
+                                {
+                                    case 1:
+                                        //TODO: UNIV1 devices has a different version meaning?
+                                        break
+                                    case 3:
+                                        switch(Number(device.applicationVersion))
+                                        {
+                                            case 0: device.initChannels('button', 'fa-hand-o-down', 8); break;
+                                            case 1: device.initChannels('button', 'fa-hand-o-down', 13); 
+                                                    device.addChannels('temperature', 'fa-thermometer-half', 1); 
+                                                    break;
+                                            case 2: device.initChannels('button', 'fa-hand-o-down', 6); 
+                                                    device.addChannels('temperature', 'fa-thermometer-half', 1); 
+                                                    device.addChannels('thermostat', 'fa-fire', 1); 
+                                                    break;
+                                            case 3: device.initChannels('button', 'fa-hand-o-down', 14); 
+                                                    device.addChannels('temperature', 'fa-thermometer-half', 1); 
+                                                    device.addChannels('thermostat', 'fa-fire', 1); 
+                                                    break;
+                                        }
+                                        break
+                                }
+                        break
+                        case 0x02: device.applicationTypeString = 'Relay'; device.applicationTypeIcon = 'fa-power-off'; device.initChannels('relay', 'fa-power-off', 6); break
+                        //case 0x03: device.applicationTypeString = 'IR Receiver'; device.applicationTypeIcon = 'fa-feed'; break
+                        //case 0x04: device.applicationTypeString = 'Temp. sensor'; device.applicationTypeIcon = 'fa-thermometer-half'; break
+                        case 0x05: device.applicationTypeString = 'IR transmitter'; device.applicationTypeIcon = 'fa-feed'; device.initChannels('ir', 'fa-feed', 1); break
+                        case 0x06: device.applicationTypeString = 'Dimmer'; device.applicationTypeIcon = 'fa-lightbulb-o'; device.initChannels('dimmer', 'fa-lightbulb-o', 1); break
+                        case 0x07: device.applicationTypeString = 'Blind controller'; device.applicationTypeIcon = 'fa-bars'; device.initChannels('blind', 'fa-bars', 3); break
+                        case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; device.initChannels('rgb', 'fa-play-circle-o', 4); break
+                        case 0x09: device.applicationTypeString = 'Open collector'; device.applicationTypeIcon = 'fa-external-link'; device.initChannels('oc', 'fa-external-link', 10); break
+                        
+                        default:
+                            device.hardwareTypeString = 'Custom device'
+                            device.applicationTypeIcon = 'fa-microchip'
+
+                    }
+                    
+                    clearTimeout(timeoutTimer)
+                    gatewayNode.eventEmitter.off('messageReceived_106', messageReceived_106 )
+                    resolve(device)
+                }
+
+                gatewayNode.eventEmitter.on('messageReceived_106', messageReceived_106 )
+            })
+        }
+
+        function fetchDescriptionFromDeviceAsync(gatewayNode, device, timeout)
+        {
+
+            // request description from node
+            var msg = Buffer.from([0xAA, 0x10, 0xE0, gatewayNode.node,gatewayNode.group, 0xFF,0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            gatewayNode.send({payload: msg})
     
-            res.json(JSON.stringify({name: node.channelDescription})); 
-        })
+            return new Promise((resolve, reject)=>
+            {
+                let timeoutTimer = setTimeout(()=>
+                {
+                    gatewayNode.eventEmitter.off('messageReceived_10E', messageReceived_10E )
+                    reject(`Timeout occured (${timeout} ms)`)
+                }
+                , timeout)
+
+                let chunks = []
+
+                function messageReceived_10E(data)
+                {
+                    var hapcanMessage = data.payload
+                    if(device.group !== Number(hapcanMessage.group) || device.node !== Number(hapcanMessage.node))
+                        return;
+
+                    chunks.push(hapcanMessage.frame.slice(5,13).toString().replace(/\x00/g,''))
+
+                    if(chunks.length < 2)
+                        return
+
+                    device.description = chunks.join('')
+
+                    clearTimeout(timeoutTimer)
+                    gatewayNode.eventEmitter.off('messageReceived_10E', messageReceived_10E )
+                    resolve(device)
+                }
+
+                gatewayNode.eventEmitter.on('messageReceived_10E', messageReceived_10E )
+            })
+        }        
+
+        async function fetchAllChannelDescriptionFromDeviceAsync(gatewayNode, device, timeout)
+        {
+            let channelType = ''
+            for(var j = 1;j < device.channels.length+1; j++)
+            {
+                if( j === 1 )
+                    channelType = device.channels[j-1].type
+                
+                // don't ask for other channels (only main device channels have a name)
+                if(channelType !== device.channels[j-1].type)
+                    break;
+
+                let description = await fetchChannelDescriptionFromDeviceAsync(gatewayNode, device, j, timeout)
+
+                if(description !== undefined )
+                {
+                    if(description !== '')
+                        device.channels[j-1].name = description
+                }
+            }
+        }
+
+        function fetchChannelDescriptionFromDeviceAsync(gatewayNode, device, channel, timeout)
+        {
+            // request channel description from node
+            let msg = Buffer.from([0xAA, 0x11, 0x70, gatewayNode.node,gatewayNode.group, channel, 0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            gatewayNode.send({payload: msg})
+    
+            return new Promise((resolve, reject)=>
+            {
+                let chunks = []
+                let timeoutTimer = setTimeout(()=>
+                {
+                    gatewayNode.eventEmitter.off('messageReceived_117', messageReceived_117 )
+                    reject(`Timeout occured (${timeout} ms). ${chunks.length} of 5 frames received`)
+                }
+                , timeout)
+
+                let ret = ''
+                function messageReceived_117(data)
+                {
+                    var hapcanMessage = data.payload
+                    if(device.group !== Number(hapcanMessage.group) || device.node !== Number(hapcanMessage.node))
+                        return;
+
+                    chunks.push(hapcanMessage.frame.slice(6,13).filter((e)=> e >= 32 && e < 127).toString())
+
+                    if(chunks.length < 5)
+                        return
+
+                    ret = chunks.join('')
+
+                    clearTimeout(timeoutTimer)
+                    gatewayNode.eventEmitter.off('messageReceived_117', messageReceived_117 )
+                    resolve(ret)
+                }
+
+                gatewayNode.eventEmitter.on('messageReceived_117', messageReceived_117 )
+            })
+        }        
 
         RED.httpAdmin.get("/hapcan-devices-discover/:id/:group", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
-            var node = RED.nodes.getNode(req.params.id);
-                node.devices = []
-    
-            node.foundDevicesInGroup = 0
-            node.firmwareResponsesInGroup = 0
-            node.descriptionResponsesInGroup = 0
-    
+            var gatewayNode = RED.nodes.getNode(req.params.id);
+            let group = Number(req.params.group)
+            let devicesFound = []
+            
             try{
-                node.requestIdGroup = Number(req.params.group)
-    
                 // request Id from group
-                var msg = Buffer.from([0xAA, 0x10, 0x30, node.node,node.group, 0xFF,0xFF,0x00, req.params.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-                node.send({payload: msg})
+                var msg = Buffer.from([0xAA, 0x10, 0x30, gatewayNode.node, gatewayNode.group, 0xFF,0xFF,0x00, group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                gatewayNode.send({payload: msg})
                 
-                await waitForNewDevicesAsync()
-    
-                if(node.foundDevicesInGroup > 0 )
+                devicesFound = await receiveIdResponseFromGroupAsync(Number(req.params.group))
+
+                for(let i = 0;i < devicesFound.length; i++)
                 {
-                    // request firmware type from group
-                    var msg = Buffer.from([0xAA, 0x10, 0x50, node.node,node.group, 0xFF,0xFF,0x00, req.params.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-                    node.send({payload: msg})
+                    let device = devicesFound[i]
+                    try
+                    {
+                        await fetchFirmwareFromDeviceAsync(gatewayNode, device, 3000)
+                    }
+                    catch(e)
+                    {
+                        if(gatewayNode.debugmode)
+                            gatewayNode.error(`Device (${device.node}, ${device.group}) not respond to firmware request: ${e}`);
+                    }
     
-                    await waitForFirmwareResponseAsync()
-    
-                    // request description from group
-                    var msg = Buffer.from([0xAA, 0x10, 0xD0, node.node,node.group, 0xFF,0xFF,0x00, req.params.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-                    node.send({payload: msg})
-    
-                    await waitForDescriptionResponseAsync()
+                    try
+                    {
+                        await fetchDescriptionFromDeviceAsync(gatewayNode, device, 3000)
+                    }
+                    catch(e)
+                    {
+                        if(gatewayNode.debugmode)
+                            gatewayNode.error(`Device (${device.node}, ${device.group}) not respond to description request: ${e}`);
+                    }
+
+                    try
+                    {
+                        if( device.supportsFrame0x117() )
+                        {
+                            await fetchAllChannelDescriptionFromDeviceAsync(gatewayNode, device, 3000)
+                        }
+                    }
+                    catch(e)
+                    {
+                        if(gatewayNode.debugmode)
+                            gatewayNode.error(`Fetching device (${device.node},${device.group}) channels description failed: ${e}`)
+                    }
+
                 }
             }
             catch(e)
-            {console.log(e)}
-    
-            res.json(JSON.stringify(node.devices));
+            {
+                if(gatewayNode.debugmode)
+                    gatewayNode.error(`Discovering devices in group ${group} failed: ${e}`)
+            }
+
+            res.json(JSON.stringify(devicesFound));
             
         });
 
@@ -387,7 +552,6 @@ module.exports = function (RED) {
                 this.node = 0;
                 this.group = 0;
                 this.description = ''
-                this.descriptionFirstPart = true
                 this.serialNumber = 0;
                 this.hardwareType = 0
                 this.hardwareTypeString = 'unknown'
@@ -410,6 +574,41 @@ module.exports = function (RED) {
                 for(let i = 0; i < count; i++)
                     this.channels.push(new HapcanDeviceChannel(type, icon, `${type}_${i+1}`))
             }
+
+            
+            // [hardwareVersion, applicationType, applicationVersion, firmwareVersion]
+            static frame0x117Support = [
+                [3,1,0,0],  // 8 CHANNEL DIN RAIL BOX BUTTON 
+                [3,1,2,1],  // 6 CHANNEL BACK BOX TOUCH BUTTON
+                [3,1,3,1],  // 14 CHANNEL BACK BOX BUTTON
+                [3,2,1,0],  // 5A MONOSTABLE RELAY
+                [3,2,2,0],  // 5A BISTABLE RELAY
+                [3,2,3,0],  // 16A MONOSTABLE RELAY
+                [3,2,4,3],  // 16A BISTABLE RELAY
+                [3,2,5,0],  // 6A MONOSTABLE RELAY
+                [3,5,0,3],  // INFRARED RECEIVER & TRANSMITTER
+                [3,6,0,2],  // DIMMER RC
+                [3,7,0,0],  // BLIND CONTROLLER for AC MOTORS
+                [3,8,0,0],  // RGB LED CONTROLLER
+                [3,9,0,0],  // 10 CHANNEL OPEN COLLECTOR 
+            ]
+
+            supportsFrame0x117()
+            {
+                return HapcanDevice.frame0x117Support.some((minimalDevice)=>{
+                    if( this.hardwareVersion !== minimalDevice[0] )
+                        return false
+                    if(this.applicationType !== minimalDevice[1])
+                        return false
+                    if(this.applicationVersion !== minimalDevice[2])
+                        return false
+                    if(this.firmwareVersion < minimalDevice[3])
+                        return false
+
+                    return true
+                })
+            }
+
         }
 
         class HapcanDeviceChannel {
@@ -422,142 +621,9 @@ module.exports = function (RED) {
             }
         }
 
-        //hardware type response
-        node.eventEmitter.on('messageReceived_103', function(data){
-            
-            var hapcanMessage = data.payload
-            if(node.requestIdGroup !== Number(hapcanMessage.group))
-                return;
-
-            var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
-            var device = node.devices.find( v => v.id === deviceId )
-            if( device === undefined )
-            {
-                device = new HapcanDevice(deviceId)
-                node.devices.push(device)
-                node.foundDevicesInGroup += 1
-            }
-                
-            device.node = hapcanMessage.node
-            device.group = hapcanMessage.group
-            device.serialNumber = '0x' + ('00000000' + ((hapcanMessage.frame[9]<<24)+(hapcanMessage.frame[10]<<16)+(hapcanMessage.frame[11]<<8)+hapcanMessage.frame[12]).toString(16)).substr(-8).toUpperCase()
-            device.hardwareType = (hapcanMessage.frame[5]<<8)+hapcanMessage.frame[6]
-            switch(device.hardwareType)
-            {
-                case 0x1000: device.hardwareTypeString = 'UNIV 1'; break
-                case 0x3000: device.hardwareTypeString = 'UNIV 3'; break
-                case 0x4F41: device.hardwareTypeString = 'Hapcanuino'; break
-                default:
-                    device.hardwareTypeString = 'unknown'
-            }
-
-        })
-
-        //firmware response
-        node.messageReceived_105 = function(data)
-        {
-            var hapcanMessage = data.payload
-            if(node.requestIdGroup !== Number(hapcanMessage.group))
-                return;
-
-            var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
-            var device = node.devices.find( v => v.id === deviceId )
-            if( device === undefined )
-                return;
-
-            node.firmwareResponsesInGroup += 1
-            device.hardwareVersion = hapcanMessage.frame[7]
-            device.applicationType = hapcanMessage.frame[8]
-            device.applicationVersion = hapcanMessage.frame[9]
-            device.firmwareVersion = hapcanMessage.frame[10]
-
-            switch(device.applicationType)
-            {
-                case 0x01: device.applicationTypeString = 'Button'; device.applicationTypeIcon = 'fa-hand-o-down';
-                        switch(Number(device.hardwareVersion))
-                        {
-                            case 1:
-                                //TODO: UNIV1 devices has a different version meaning?
-                                break
-                            case 3:
-                                switch(Number(device.applicationVersion))
-                                {
-                                    case 0: device.initChannels('button', 'fa-hand-o-down', 8); break;
-                                    case 1: device.initChannels('button', 'fa-hand-o-down', 13); 
-                                            device.addChannels('temperature', 'fa-thermometer-half', 1); 
-                                            break;
-                                    case 2: device.initChannels('button', 'fa-hand-o-down', 6); 
-                                            device.addChannels('temperature', 'fa-thermometer-half', 1); 
-                                            device.addChannels('thermostat', 'fa-fire', 1); 
-                                            break;
-                                    case 3: device.initChannels('button', 'fa-hand-o-down', 14); 
-                                            device.addChannels('temperature', 'fa-thermometer-half', 1); 
-                                            device.addChannels('thermostat', 'fa-fire', 1); 
-                                            break;
-                                }
-                                break
-                        }
-                break
-                case 0x02: device.applicationTypeString = 'Relay'; device.applicationTypeIcon = 'fa-power-off'; device.initChannels('relay', 'fa-power-off', 6); break
-                //case 0x03: device.applicationTypeString = 'IR Receiver'; device.applicationTypeIcon = 'fa-feed'; break
-                //case 0x04: device.applicationTypeString = 'Temp. sensor'; device.applicationTypeIcon = 'fa-thermometer-half'; break
-                case 0x05: device.applicationTypeString = 'IR transmitter'; device.applicationTypeIcon = 'fa-feed'; device.initChannels('ir', 'fa-feed', 1); break
-                case 0x06: device.applicationTypeString = 'Dimmer'; device.applicationTypeIcon = 'fa-lightbulb-o'; device.initChannels('dimmer', 'fa-lightbulb-o', 1); break
-                case 0x07: device.applicationTypeString = 'Blind controller'; device.applicationTypeIcon = 'fa-bars'; device.initChannels('blind', 'fa-bars', 3); break
-                case 0x08: device.applicationTypeString = 'Led controller'; device.applicationTypeIcon = 'fa-stop-circle-o'; device.initChannels('rgb', 'fa-play-circle-o', 4); break
-                case 0x09: device.applicationTypeString = 'Open collector'; device.applicationTypeIcon = 'fa-external-link'; device.initChannels('oc', 'fa-external-link', 10); break
-                
-                default:
-                    device.hardwareTypeString = 'Custom device'
-                    device.applicationTypeIcon = 'fa-microchip'
-
-            }
-        }
-        
-        //description response
-        node.messageReceived_10D = function(data)
-        {
-            var hapcanMessage = data.payload
-            if(node.requestIdGroup !== Number(hapcanMessage.group))
-                return;
-
-            var deviceId = ('00'+ hapcanMessage.node.toString(16)).substr(-2).toUpperCase() + ('00'+ hapcanMessage.group.toString(16)).substr(-2).toUpperCase()
-            var device = node.devices.find( v => v.id === deviceId )
-            if( device === undefined )
-                return;
-
-            if(device.descriptionFirstPart)
-                device.description = ''
-            else
-            {
-                node.descriptionResponsesInGroup += 1
-            }
-            device.description += hapcanMessage.frame.slice(5,13).toString().replace(/\x00/g,'')
-            device.descriptionFirstPart = !device.descriptionFirstPart
-        }
-
-        //channel description response
-        node.messageReceived_117 = function(data)
-        {
-            var hapcanMessage = data.payload
-            if(node.requestIdGroup !== Number(hapcanMessage.group))
-                return;
-
-            //var responseChannel = hapcanMessage.frame[5] >>> 3
-            //var frameNumber = hapcanMessage.frame[5] & 0x07
-
-            node.channelDescription += hapcanMessage.frame.slice(6,13).filter((e)=> e >= 32 && e < 127).toString()
-            node.channelDescriptionFramesReceived++;
-        }        
-
-        node.eventEmitter.on('messageReceived_105', node.messageReceived_105)
-        node.eventEmitter.on('messageReceived_10D', node.messageReceived_10D)
-        node.eventEmitter.on('messageReceived_117', node.messageReceived_117)
 
         this.on('close', function() {
-            node.eventEmitter.removeListener('messageReceived_105', node.messageReceived_105)
-            node.eventEmitter.removeListener('messageReceived_10D', node.messageReceived_10D)
-            node.eventEmitter.removeListener('messageReceived_117', node.messageReceived_117)
+
         });
     }
     RED.nodes.registerType("hapcan-gateway", HapcanGatewayNode);
