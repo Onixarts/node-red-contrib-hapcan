@@ -29,6 +29,7 @@ module.exports = function (RED) {
         this.eventEmitter.setMaxListeners(50);
         this.devices = config.devices;
         this.sseResponse = null
+        this.stopDiscoverActivity = false
         if(this.devices === undefined)
             this.devices = []
 
@@ -243,7 +244,7 @@ module.exports = function (RED) {
             return new Promise(timerResolve => setTimeout(timerResolve, ms));
         }
 
-        async function receiveIdResponseFromGroupAsync(group){
+        async function receiveIdResponseFromGroupAsync(gatewayNode, group){
             let devicesFound = []
 
             const messageReceived_103 = function(data){
@@ -272,6 +273,8 @@ module.exports = function (RED) {
                     default:
                         device.hardwareTypeString = 'unknown'
                 }
+
+                gatewayNode.sse({event: 'deviceFound', data: device})
             }
 
             node.eventEmitter.on('messageReceived_103', messageReceived_103)
@@ -303,29 +306,27 @@ module.exports = function (RED) {
             return devicesFound
         }
 
-        function fetchFirmwareFromDeviceAsync(gatewayNode, device, timeout)
+        this.fetchFirmwareFromDeviceAsync = async (device, timeout) =>
         {
             // request firmware type from node
-            var msg = Buffer.from([0xAA, 0x10, 0x60, gatewayNode.node, gatewayNode.group, 0xFF,0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-            gatewayNode.send({payload: msg})
-            
+            var msg = Buffer.from([0xAA, 0x10, 0x60, this.node, this.group, 0xFF,0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            this.send({payload: msg})
+
             return new Promise((resolve, reject)=>
             {
                 let timeoutTimer = setTimeout(()=>
                 {
-                    gatewayNode.eventEmitter.off('messageReceived_106', messageReceived_106 )
+                    this.eventEmitter.off('messageReceived_106', messageReceived_106 )
                     reject(`Timeout occured (${timeout} ms)`)
                 }
                 , timeout)
 
-                function messageReceived_106(data)
+                let messageReceived_106 = (data) =>
                 {
                     var hapcanMessage = data.payload
                     if(device.group !== Number(hapcanMessage.group) || device.node !== Number(hapcanMessage.node))
                         return;
                                         
-                    //console.log(`device firmware responsefor node: ${hapcanMessage.node}`)
-
                     device.hardwareVersion = hapcanMessage.frame[7]
                     device.applicationType = hapcanMessage.frame[8]
                     device.applicationVersion = hapcanMessage.frame[9]
@@ -374,33 +375,32 @@ module.exports = function (RED) {
                     }
                     
                     clearTimeout(timeoutTimer)
-                    gatewayNode.eventEmitter.off('messageReceived_106', messageReceived_106 )
+                    this.eventEmitter.off('messageReceived_106', messageReceived_106 )
+                    this.sse({event: 'deviceUpdated', data: device})
                     resolve(device)
                 }
-
-                gatewayNode.eventEmitter.on('messageReceived_106', messageReceived_106 )
+                this.eventEmitter.on('messageReceived_106', messageReceived_106 )
             })
         }
 
-        function fetchDescriptionFromDeviceAsync(gatewayNode, device, timeout)
+        this.fetchDescriptionFromDeviceAsync = async (device, timeout) =>
         {
-
             // request description from node
-            var msg = Buffer.from([0xAA, 0x10, 0xE0, gatewayNode.node,gatewayNode.group, 0xFF,0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-            gatewayNode.send({payload: msg})
+            var msg = Buffer.from([0xAA, 0x10, 0xE0, this.node,this.group, 0xFF,0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            this.send({payload: msg})
     
             return new Promise((resolve, reject)=>
             {
                 let timeoutTimer = setTimeout(()=>
                 {
-                    gatewayNode.eventEmitter.off('messageReceived_10E', messageReceived_10E )
+                    this.eventEmitter.off('messageReceived_10E', messageReceived_10E )
                     reject(`Timeout occured (${timeout} ms)`)
                 }
                 , timeout)
 
                 let chunks = []
 
-                function messageReceived_10E(data)
+                let messageReceived_10E = (data) =>
                 {
                     var hapcanMessage = data.payload
                     if(device.group !== Number(hapcanMessage.group) || device.node !== Number(hapcanMessage.node))
@@ -414,15 +414,16 @@ module.exports = function (RED) {
                     device.description = chunks.join('')
 
                     clearTimeout(timeoutTimer)
-                    gatewayNode.eventEmitter.off('messageReceived_10E', messageReceived_10E )
+                    this.eventEmitter.off('messageReceived_10E', messageReceived_10E )
+                    this.sse({event: 'deviceUpdated', data: device})
                     resolve(device)
                 }
 
-                gatewayNode.eventEmitter.on('messageReceived_10E', messageReceived_10E )
+                this.eventEmitter.on('messageReceived_10E', messageReceived_10E )
             })
         }        
 
-        async function fetchAllChannelDescriptionFromDeviceAsync(gatewayNode, device, timeout)
+        this.fetchAllChannelDescriptionFromDeviceAsync = async (device, timeout) =>
         {
             let channelType = ''
             for(var j = 1;j < device.channels.length+1; j++)
@@ -434,34 +435,34 @@ module.exports = function (RED) {
                 if(channelType !== device.channels[j-1].type)
                     break;
 
-                let description = await fetchChannelDescriptionFromDeviceAsync(gatewayNode, device, j, timeout)
-
+                let description = await this.fetchChannelDescriptionFromDeviceAsync( device, j, timeout)
                 if(description !== undefined )
                 {
                     if(description !== '')
                         device.channels[j-1].name = description
                 }
             }
+            this.sse({event: 'deviceUpdated', data: device})
         }
 
-        function fetchChannelDescriptionFromDeviceAsync(gatewayNode, device, channel, timeout)
+        this.fetchChannelDescriptionFromDeviceAsync= async (device, channel, timeout) =>
         {
             // request channel description from node
-            let msg = Buffer.from([0xAA, 0x11, 0x70, gatewayNode.node,gatewayNode.group, channel, 0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-            gatewayNode.send({payload: msg})
+            let msg = Buffer.from([0xAA, 0x11, 0x70, this.node,this.group, channel, 0xFF, device.node, device.group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+            this.send({payload: msg})
     
             return new Promise((resolve, reject)=>
             {
-                let chunks = []
                 let timeoutTimer = setTimeout(()=>
                 {
-                    gatewayNode.eventEmitter.off('messageReceived_117', messageReceived_117 )
+                    this.eventEmitter.off('messageReceived_117', messageReceived_117 )
                     reject(`Timeout occured (${timeout} ms). ${chunks.length} of 5 frames received`)
                 }
                 , timeout)
-
-                let ret = ''
-                function messageReceived_117(data)
+                
+                let chunks = []
+                
+                let messageReceived_117 = (data) =>
                 {
                     var hapcanMessage = data.payload
                     if(device.group !== Number(hapcanMessage.group) || device.node !== Number(hapcanMessage.node))
@@ -472,14 +473,12 @@ module.exports = function (RED) {
                     if(chunks.length < 5)
                         return
 
-                    ret = chunks.join('')
-
                     clearTimeout(timeoutTimer)
-                    gatewayNode.eventEmitter.off('messageReceived_117', messageReceived_117 )
-                    resolve(ret)
+                    this.eventEmitter.off('messageReceived_117', messageReceived_117 )
+                    resolve(chunks.join(''))
                 }
 
-                gatewayNode.eventEmitter.on('messageReceived_117', messageReceived_117 )
+                this.eventEmitter.on('messageReceived_117', messageReceived_117 )
             })
         }        
 
@@ -491,9 +490,9 @@ module.exports = function (RED) {
                 if(this.debugmode)
                     this.log(`SSE: ${evt.event}`);
                 this.sseResponse.write(`event: ${evt.event}\n`)
-                if( !!evt.data)
+                if( evt.data === undefined)
                     evt.data = {}
-                this.sseResponse.write(`data: kurla\n\n`)
+                this.sseResponse.write(`data: ${JSON.stringify(evt.data)}\n\n`)
             }
         }
 
@@ -510,80 +509,90 @@ module.exports = function (RED) {
               })
 
             gatewayNode.sse({event: 'connected'})
-            
-            // let a = 0
-            // let res1 = res
-            // let int = setInterval(()=>
-            // {
-            //     console.log('streaming')
-            //     //res1.write('event: connected\n\n')
-            //     //gatewayNode.sseResponse.write('data: connected\n\n')
-            //     //gatewayNode.sse({event: 'conncted'})
-            //     gatewayNode.sse({event: 'connected'})
-            //     //res1.write('data: kurua\n\n')
-            //     a++
-            //     if(a=== 10)
-            //     {
-            //         clearInterval(int)
-            //         res1.end()
-            //     }
-
-            // }, 1000)
-
         })
 
-        RED.httpAdmin.get("/hapcan-devices-discover/:id/:group", RED.auth.needsPermission('serial.read'), async function(req,res) {
+        RED.httpAdmin.post("/hapcan-gateway/:id/discover/stop", RED.auth.needsPermission('serial.read'), async function(req,res) {
+            var gatewayNode = RED.nodes.getNode(req.params.id);
+            
+            gatewayNode.stopDiscoverActivity = true
+
+            res.status(200).end()
+        })
+
+        this.refreshDeviceInfo = async (devices) =>
+        {
+            for(let i = 0;i < devices.length; i++)
+            {
+                if(this.stopDiscoverActivity)
+                    break;
+                let device = devices[i]
+                try
+                {
+                    await this.fetchFirmwareFromDeviceAsync(device, 3000)
+                }
+                catch(e)
+                {
+                    if(this.debugmode)
+                        this.error(`Device (${device.node}, ${device.group}) not respond to firmware request: ${e}`);
+                }
+
+                if(this.stopDiscoverActivity)
+                    break;
+
+                try
+                {
+                    await this.fetchDescriptionFromDeviceAsync(device, 3000)
+                }
+                catch(e)
+                {
+                    if(this.debugmode)
+                        this.error(`Device (${device.node}, ${device.group}) not respond to description request: ${e}`);
+                }
+
+                if(this.stopDiscoverActivity)
+                    break;
+                    
+                try
+                {
+                    if( device.supportsFrame0x117() )
+                    {
+                        await this.fetchAllChannelDescriptionFromDeviceAsync(device, 3000)
+                    }
+                }
+                catch(e)
+                {
+                    if(this.debugmode)
+                        this.error(`Fetching device (${device.node},${device.group}) channels description failed: ${e}`)
+                }
+
+            }
+        }
+
+        RED.httpAdmin.post("/hapcan-gateway/:id/discover/run/:group", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
             var gatewayNode = RED.nodes.getNode(req.params.id);
             let group = Number(req.params.group)
             let devicesFound = []
-
+            
+            //TODO: sprawdzić czy już nie trwa wyszukiwanie
+            gatewayNode.stopDiscoverActivity = false
             gatewayNode.sse({event: 'discoveryStarted'})
 
+            res.status(200).end()
             try{
 
-                // request Id from group
-                var msg = Buffer.from([0xAA, 0x10, 0x30, gatewayNode.node, gatewayNode.group, 0xFF,0xFF,0x00, group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
-                gatewayNode.send({payload: msg})
-                
-                devicesFound = await receiveIdResponseFromGroupAsync(Number(req.params.group))
-
-                for(let i = 0;i < devicesFound.length; i++)
+                for(let i = 1; i<255; i++)
                 {
-                    let device = devicesFound[i]
-                    try
-                    {
-                        await fetchFirmwareFromDeviceAsync(gatewayNode, device, 3000)
-                    }
-                    catch(e)
-                    {
-                        if(gatewayNode.debugmode)
-                            gatewayNode.error(`Device (${device.node}, ${device.group}) not respond to firmware request: ${e}`);
-                    }
-    
-                    try
-                    {
-                        await fetchDescriptionFromDeviceAsync(gatewayNode, device, 3000)
-                    }
-                    catch(e)
-                    {
-                        if(gatewayNode.debugmode)
-                            gatewayNode.error(`Device (${device.node}, ${device.group}) not respond to description request: ${e}`);
-                    }
+                    if(gatewayNode.stopDiscoverActivity)
+                        break;
+                    gatewayNode.sse({event: 'searchingGroup', data: {group: i}})
+                    // request Id from group
+                    var msg = Buffer.from([0xAA, 0x10, 0x30, gatewayNode.node, gatewayNode.group, 0xFF,0xFF,0x00, i, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
+                    gatewayNode.send({payload: msg})
 
-                    try
-                    {
-                        if( device.supportsFrame0x117() )
-                        {
-                            await fetchAllChannelDescriptionFromDeviceAsync(gatewayNode, device, 3000)
-                        }
-                    }
-                    catch(e)
-                    {
-                        if(gatewayNode.debugmode)
-                            gatewayNode.error(`Fetching device (${device.node},${device.group}) channels description failed: ${e}`)
-                    }
+                    let devicesFound = await receiveIdResponseFromGroupAsync(gatewayNode, i)
 
+                    await gatewayNode.refreshDeviceInfo(devicesFound)
                 }
             }
             catch(e)
@@ -591,9 +600,8 @@ module.exports = function (RED) {
                 if(gatewayNode.debugmode)
                     gatewayNode.error(`Discovering devices in group ${group} failed: ${e}`)
             }
-
-            res.json(JSON.stringify(devicesFound));
-            
+                            
+            gatewayNode.sse({event: 'discoveryEnded'})
         });
 
         class HapcanDevice {
