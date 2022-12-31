@@ -17,6 +17,7 @@
         discoveringTimer: null,
         cleanUp: null,
         showDevices: null,
+        sse: null,
         oneditprepare: function(){
             let config = this
             var discovering = false
@@ -26,6 +27,9 @@
             $('#node-config-input-reconnectPeriod').val(this.reconnectPeriod || 1000);
             
             cleanUp = function() {
+                if(!!sse)
+                    sse.close()
+
                 if( discovering )
                     $('#discover-devices').trigger('click')
                 $('#discover-devices').off('click')
@@ -115,13 +119,63 @@
                 $(evt.currentTarget).toggleClass('caret-down')
             }
 
+            if (!!window.EventSource) {
+                sse = new EventSource(`hapcan-gateway/${config.id}/sse`)
+
+                sse.addEventListener('connected', function(e) {
+                    console.log(`hapcan gateway sse connected` )
+                }, false)
+
+                sse.onmessage = (e) =>
+                {
+                    console.log(`message: ${e}` )
+                }
+
+                sse.addEventListener('discoveryStarted', function(e) 
+                {
+                    console.log('discovery started')
+                    $('#discover-devices').html('<i class="fa fa-refresh fa-spin"></i> Updating device list... (click to stop)')
+                })
+
+                sse.addEventListener('deviceFound', function(e) 
+                {
+                    console.log('device found')
+                    $('#discover-devices').html('<i class="fa fa-refresh fa-spin"></i> Updating device list... (click to stop)')
+                })
+
+                sse.addEventListener('open', function(e) {
+                    console.log(`open: ${JSON.stringify(e)}` )
+                }, false)
+
+                sse.addEventListener('error', function(e) {
+                    console.log(`error: ${JSON.stringify(e)}` )
+                    if (e.eventPhase == EventSource.CLOSED)
+                    {
+                        sse.close()
+                        console.log('closed')
+                    }
+                    if (e.target.readyState == EventSource.CLOSED) {
+                        console.log("Disconnected")
+
+                }
+                else if (e.target.readyState == EventSource.CONNECTING) {
+                    console.log("Connecting...")
+                }
+                }, false)
+            } 
+            else 
+            {
+                console.log("Your browser doesn't support SSE. The discovery function will not work properly.")
+            }
+            
+
             $('#discover-devices').click(async function(){
+
                 discovering = !discovering
                 if(discovering)
                 {
                     $('#hapcan-devices > div:not(:first-child)').addClass('hapcan-device-need-refresh').removeClass('hapcan-device-not-found')
-
-                    $(this).html('<i class="fa fa-refresh fa-spin"></i> Updating device list... (click to stop)')
+                    $(this).html('<i class="fa fa-refresh"></i> Starting discovery (click to stop)')
                     
                     for(let i = 1; i < 255; i++)
                     {

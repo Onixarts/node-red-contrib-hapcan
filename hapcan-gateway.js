@@ -28,9 +28,9 @@ module.exports = function (RED) {
         this.eventEmitter = new events.EventEmitter();
         this.eventEmitter.setMaxListeners(50);
         this.devices = config.devices;
+        this.sseResponse = null
         if(this.devices === undefined)
             this.devices = []
-
 
         this.connectionStatus = ConnectionStatus.notConnected;
         
@@ -238,8 +238,6 @@ module.exports = function (RED) {
 
         node.setConnectionStatus(ConnectionStatus.notConnected);
         node.connect();
-
-        this.channelDescription = ''
 
         function sleep(ms) {
             return new Promise(timerResolve => setTimeout(timerResolve, ms));
@@ -485,13 +483,65 @@ module.exports = function (RED) {
             })
         }        
 
+
+        this.sse = (evt) =>
+        {
+            if(!!this.sseResponse)
+            {
+                if(this.debugmode)
+                    this.log(`SSE: ${evt.event}`);
+                this.sseResponse.write(`event: ${evt.event}\n`)
+                if( !!evt.data)
+                    evt.data = {}
+                this.sseResponse.write(`data: kurla\n\n`)
+            }
+        }
+
+        RED.httpAdmin.get("/hapcan-gateway/:id/sse", RED.auth.needsPermission('serial.read'), async function(req,res) {
+            
+            let gatewayNode = RED.nodes.getNode(req.params.id);
+
+            gatewayNode.sseResponse = res
+
+            res.writeHead(200, {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
+              })
+
+            gatewayNode.sse({event: 'connected'})
+            
+            // let a = 0
+            // let res1 = res
+            // let int = setInterval(()=>
+            // {
+            //     console.log('streaming')
+            //     //res1.write('event: connected\n\n')
+            //     //gatewayNode.sseResponse.write('data: connected\n\n')
+            //     //gatewayNode.sse({event: 'conncted'})
+            //     gatewayNode.sse({event: 'connected'})
+            //     //res1.write('data: kurua\n\n')
+            //     a++
+            //     if(a=== 10)
+            //     {
+            //         clearInterval(int)
+            //         res1.end()
+            //     }
+
+            // }, 1000)
+
+        })
+
         RED.httpAdmin.get("/hapcan-devices-discover/:id/:group", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
             var gatewayNode = RED.nodes.getNode(req.params.id);
             let group = Number(req.params.group)
             let devicesFound = []
-            
+
+            gatewayNode.sse({event: 'discoveryStarted'})
+
             try{
+
                 // request Id from group
                 var msg = Buffer.from([0xAA, 0x10, 0x30, gatewayNode.node, gatewayNode.group, 0xFF,0xFF,0x00, group, 0xFF,0xFF,0xFF,0xFF,0xFF,0xA5]);
                 gatewayNode.send({payload: msg})
