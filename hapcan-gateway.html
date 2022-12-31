@@ -119,6 +119,47 @@
                 $(evt.currentTarget).toggleClass('caret-down')
             }
 
+
+            function deviceUpdate(foundDevice)
+            {
+                var device = config.devices.find( v => v.id === foundDevice.id )
+                if(device === undefined)
+                {
+                    config.devices.push(foundDevice)
+                }
+                else
+                {
+                    $(`#hapcan-devices #hapcan-device-${device.id}`).removeClass('hapcan-device-need-refresh')
+                    if(foundDevice.description !== '') 
+                        device.description = foundDevice.description
+                    if(foundDevice.serialNumber !== 0)
+                        device.serialNumber = foundDevice.serialNumber;
+                    if(foundDevice.hardwareType !== 0)
+                        device.hardwareType = foundDevice.hardwareType
+                    if(foundDevice.hardwareTypeString !== 'unknown')  
+                        device.hardwareTypeString = foundDevice.hardwareTypeString
+                    if(foundDevice.hardwareVersion !== 0)  
+                        device.hardwareVersion = foundDevice.hardwareVersion
+                    if(foundDevice.applicationType !== 0)  
+                        device.applicationType = foundDevice.applicationType
+                    if(foundDevice.applicationTypeString !== 'unknown')
+                        device.applicationTypeString = foundDevice.applicationTypeString
+                    if(foundDevice.applicationTypeIcon !== 'fa-microchip')  
+                        device.applicationTypeIcon = foundDevice.applicationTypeIcon
+                    if(foundDevice.applicationVersion !== 0)  
+                        device.applicationVersion = foundDevice.applicationVersion
+                    if(foundDevice.firmwareVersion !== 0)  
+                        device.firmwareVersion = foundDevice.firmwareVersion
+                    
+                    if(foundDevice.channels.length > 0 )
+                    {
+                        //TODO: uwzględnić custom names
+                        device.channels = foundDevice.channels
+                    }
+                }
+                showDevices()
+            }
+
             if (!!window.EventSource) {
                 sse = new EventSource(`hapcan-gateway/${config.id}/sse`)
 
@@ -133,14 +174,34 @@
 
                 sse.addEventListener('discoveryStarted', function(e) 
                 {
-                    console.log('discovery started')
                     $('#discover-devices').html('<i class="fa fa-refresh fa-spin"></i> Updating device list... (click to stop)')
+                })
+
+                sse.addEventListener('discoveryEnded', function(e) 
+                {
+                    $('#discover-devices').html('<i class="fa fa-refresh"></i> Discover/Refresh devices')
+                    $('#hapcan-devices > div:not(:first-child)')
+                        .filter(function(){return $(this).hasClass('hapcan-device-need-refresh')})
+                        .addClass('hapcan-device-not-found')
+                        .removeClass('hapcan-device-need-refresh')
                 })
 
                 sse.addEventListener('deviceFound', function(e) 
                 {
                     console.log('device found')
-                    $('#discover-devices').html('<i class="fa fa-refresh fa-spin"></i> Updating device list... (click to stop)')
+                    deviceUpdate(JSON.parse(e.data))
+                })
+
+                sse.addEventListener('deviceUpdated', function(e) 
+                {
+                    console.log(`device updated`)
+                    deviceUpdate(JSON.parse(e.data))
+                })
+
+                sse.addEventListener('searchingGroup', function(e) 
+                {
+                    let data = JSON.parse(e.data)
+                    $('#hapcan-discover-progressbar div').css('width', parseInt(((data.group)/255)*100)+'%' )
                 })
 
                 sse.addEventListener('open', function(e) {
@@ -169,6 +230,7 @@
             }
             
 
+
             $('#discover-devices').click(async function(){
 
                 discovering = !discovering
@@ -177,62 +239,16 @@
                     $('#hapcan-devices > div:not(:first-child)').addClass('hapcan-device-need-refresh').removeClass('hapcan-device-not-found')
                     $(this).html('<i class="fa fa-refresh"></i> Starting discovery (click to stop)')
                     
-                    for(let i = 1; i < 255; i++)
-                    {
-                        $('#hapcan-discover-progressbar div').css('width', parseInt(((i+1)/255)*100)+'%' )
-                        await $.getJSON(`hapcan-devices-discover/${config.id}/${i}`,function(data) 
-                        {
-                            var devicesInGroup = JSON.parse(data)
-                            devicesInGroup.forEach(foundDevice => {
-                                var device = config.devices.find( v => v.id === foundDevice.id )
-                                if(device === undefined)
-                                {
-                                    config.devices.push(foundDevice)
-                                }
-                                else
-                                {
-                                    $(`#hapcan-devices #hapcan-device-${device.id}`).removeClass('hapcan-device-need-refresh')
-                                    if(foundDevice.description !== '') 
-                                        device.description = foundDevice.description
-                                    if(foundDevice.serialNumber !== 0)
-                                        device.serialNumber = foundDevice.serialNumber;
-                                    if(foundDevice.hardwareType !== 0)
-                                        device.hardwareType = foundDevice.hardwareType
-                                    if(foundDevice.hardwareTypeString !== 'unknown')  
-                                        device.hardwareTypeString = foundDevice.hardwareTypeString
-                                    if(foundDevice.hardwareVersion !== 0)  
-                                        device.hardwareVersion = foundDevice.hardwareVersion
-                                    if(foundDevice.applicationType !== 0)  
-                                        device.applicationType = foundDevice.applicationType
-                                    if(foundDevice.applicationTypeString !== 'unknown')
-                                        device.applicationTypeString = foundDevice.applicationTypeString
-                                    if(foundDevice.applicationTypeIcon !== 'fa-microchip')  
-                                        device.applicationTypeIcon = foundDevice.applicationTypeIcon
-                                    if(foundDevice.applicationVersion !== 0)  
-                                        device.applicationVersion = foundDevice.applicationVersion
-                                    if(foundDevice.firmwareVersion !== 0)  
-                                        device.firmwareVersion = foundDevice.firmwareVersion
-                                    
-                                }
-                            })
-                            showDevices()
-                        })
+                    await $.post(`hapcan-gateway/${config.id}/discover/run/1`)
 
-                        if(!discovering)
-                            return                            
-                    }
-
-                    $('#discover-devices').trigger('click')
+                    if(!discovering)
+                        return                            
                 }
                 else
                 {
-                    $(this).html('<i class="fa fa-refresh"></i> Discover/Refresh devices')
+                    $(this).html('<i class="fa fa-refresh"></i> Stopping discovery...')
+                    await $.post(`hapcan-gateway/${config.id}/discover/stop`)
                 }
-                
-                $('#hapcan-devices > div:not(:first-child)')
-                    .filter(function(){return $(this).hasClass('hapcan-device-need-refresh')})
-                        .addClass('hapcan-device-not-found')
-                        .removeClass('hapcan-device-need-refresh')
             })
 
             $('#clear-devices').click(async function()
