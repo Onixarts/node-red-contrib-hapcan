@@ -52,6 +52,8 @@ Each node uses special (hidden) gateway node to communicate with Hapcan system. 
 - **Thermostat input** receives thermostat messages from [button modules](https://hapcan.com/devices/universal/univ_3/univ_3-1-3-x/index.htm)
 - **Custom input** receives any Hapcan's frame data from any module (custom modules included).
 - **Custom output** sends any configured (static) and dynamic (payload) message to Hapcan's bus.
+- **Open Collector input** receives messages from [open collector outputs module](https://hapcan.com/devices/universal/univ_3/univ_3-9-0-x/index.htm)
+- **Open Collector output** allows controlling the [open collector outputs module](https://hapcan.com/devices/universal/univ_3/univ_3-9-0-x/index.htm)
 
 # Usage
 
