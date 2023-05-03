@@ -250,7 +250,7 @@
             name: {value:""},
             group: {value: 1, required: true, validate: function(val){return (val >= 0 && val < 256);} },
             node: {value: 1, required: true, validate: function(val){return (val >= 0 && val < 256);}},
-            channelFilter: {value: 1, required: true, validate: function(val){return (Number(val) > 0 && Number(val) <= 256);}},
+            channelFilter: {value: 1, required: true, validate: function(val){return (Number(val) > 0 && Number(val) <= 0x03FF);}},
             userFieldStateON: {value: ""},
             userFieldStateOFF: {value: ""}
         },
@@ -399,20 +399,18 @@
         <select id="node-input-group"></select>
     </div>
     <div class="form-row">
-        <ul>
         <label for="node-input-channel" style="width: 150px;"><i class="fa fa-sign-out"></i> Channel filter</label><br>
-            <input style="width: 10%;" id="channel1" type="radio" name="channel" value="1">1 
-            <input style="width: 10%;" id="channel2" type="radio" name="channel" value="2">2
-            <input style="width: 10%;" id="channel3" type="radio" name="channel" value="4">3
-            <input style="width: 10%;" id="channel4" type="radio" name="channel" value="8">4
-            <input style="width: 10%;" id="channel5" type="radio" name="channel" value="16">5
-            <br>
-            <input style="width: 10%;" id="channel6" type="radio" name="channel" value="32">6
-            <input style="width: 10%;" id="channel7" type="radio" name="channel" value="64">7
-            <input style="width: 10%;" id="channel8" type="radio" name="channel" value="128">8
-            <input style="width: 10%;" id="channel9" type="radio" name="channel" value="256">9
-            <input style="width: 10%;" id="channel10" type="radio" name="channel" value="512">10
-        </ul>
+        <input style="width: 10%;" id="channel1" type="checkbox" name="channel" value="1">1 
+        <input style="width: 10%;" id="channel2" type="checkbox" name="channel" value="2">2
+        <input style="width: 10%;" id="channel3" type="checkbox" name="channel" value="4">3
+        <input style="width: 10%;" id="channel4" type="checkbox" name="channel" value="8">4
+        <input style="width: 10%;" id="channel5" type="checkbox" name="channel" value="16">5
+        <br>
+        <input style="width: 10%;" id="channel6" type="checkbox" name="channel" value="32">6
+        <input style="width: 10%;" id="channel7" type="checkbox" name="channel" value="64">7
+        <input style="width: 10%;" id="channel8" type="checkbox" name="channel" value="128">8
+        <input style="width: 10%;" id="channel9" type="checkbox" name="channel" value="256">9
+        <input style="width: 10%;" id="channel10" type="checkbox" name="channel" value="512">10
     </div>
     <hr>
     <div class="form-row">
