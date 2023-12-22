@@ -1,3 +1,5 @@
+const { clearInterval } = require('timers');
+
 module.exports = function (RED) {
    "use strict";
     var reconnectTime = RED.settings.socketReconnectTime || 10000;
@@ -25,6 +27,9 @@ module.exports = function (RED) {
         this.debugmode = config.debugmode || false;
         this.incommingMessage = Buffer.alloc(15,0xFF);
         this.incommingMessageIndex = 0;
+        this.sendingBuffer = []
+        this.sendingInterval = null
+        this.sendingLimit = config.sendingLimit || 5
         this.eventEmitter = new events.EventEmitter();
         this.eventEmitter.setMaxListeners(50);
         this.devices = config.devices;
@@ -158,6 +163,32 @@ module.exports = function (RED) {
             node.eventEmitter.emit('messageReceived_'+ ('000' + hapcanMsg.frameType.toString(16)).substr(-3).toUpperCase(), RED.util.cloneMessage(eventArgs));
         }
 
+        this.internalSend = function(payload)
+        {
+            var sum = 0;
+            if( payload.length === 15)
+            {
+                for (var i = 1; i < 13; i++)
+                {
+                    sum += payload[i];
+                }
+                payload[13] = sum;
+            }
+            else if(payload.length === 13)
+            {
+                for (var i = 1; i < 11; i++)
+                {
+                    sum += payload[i];
+                }
+                payload[11] = sum;  
+            }
+            
+            if( node.debugmode )
+                this.log(`sending:  >>  ${node.messageToString(payload)}`);
+            
+            node.client.write(payload);
+        }
+
         this.send = function(msg){
             if (node.connectionStatus.value === ConnectionStatus.connected.value ) {
                 if (msg.payload === null || msg.payload === undefined) {
@@ -165,28 +196,33 @@ module.exports = function (RED) {
                 } 
                 else if (Buffer.isBuffer(msg.payload)) {
 
-                    var sum = 0;
-                    if( msg.payload.length === 15)
-                    {
-                        for (var i = 1; i < 13; i++)
-                        {
-                            sum += msg.payload[i];
-                        }
-                        msg.payload[13] = sum;
-                    }
-                    else if(msg.payload.length === 13)
-                    {
-                        for (var i = 1; i < 11; i++)
-                        {
-                            sum += msg.payload[i];
-                        }
-                        msg.payload[11] = sum;  
-                    }
-                    
-                    if( node.debugmode )
-                        this.log('sending:  >> '+ node.messageToString(msg.payload));
+                    this.sendingBuffer.push(msg.payload)
 
-                    node.client.write(msg.payload);
+                    let self = this
+                    if(this.sendingInterval === null)
+                    {
+                        this.sendingInterval = setInterval(()=>{
+                            
+                            if(self.sendingBuffer.length > 0)
+                            {
+                                let dequeuedPayload = self.sendingBuffer.shift()
+                                if( node.debugmode )
+                                    this.log(`dequeued (${this.sendingBuffer.length}): ${node.messageToString(dequeuedPayload)}`);
+                                self.internalSend(dequeuedPayload)
+                            }
+                            else
+                            {
+                                clearInterval(self.sendingInterval)
+                                self.sendingInterval = null
+                                return
+                            }
+                        }, this.sendingLimit)
+                        
+                        this.internalSend(this.sendingBuffer.shift())
+                    }
+                    else
+                        if( node.debugmode )
+                            this.log(`queued (${this.sendingBuffer.length}):   ${node.messageToString(msg.payload)}`);
                 }
             }
         };
