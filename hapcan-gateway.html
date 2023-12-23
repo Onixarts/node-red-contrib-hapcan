@@ -103,6 +103,9 @@
 
             onDeviceDeleteClick = function(evt)
             {
+                if(confirm("Are you sure you want to remove device from list?") !== true)
+                    return
+
                 let deviceId = $(evt.currentTarget).closest('.hapcan-device').attr('hapcan-device-id')
                 var deviceIdx = config.devices.findIndex( v => v.id === deviceId )
                 if(deviceIdx > -1)
@@ -273,6 +276,9 @@
 
             $('#clear-devices').click(async function()
             {
+                if(confirm("Are you sure you want to clear device list?") !== true)
+                    return
+
                 config.devices = [];
                 $(`#hapcan-devices .caret`).off('click', onCaretClick)
                 $('#hapcan-devices > div:not(:first-child)').remove()
