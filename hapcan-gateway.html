@@ -9,6 +9,7 @@
             node: {value: 1, required: true, validate: function(val){return (val > 0 && val < 256);}},
             debugmode: {value: false},
             reconnectPeriod: {value: 1000, validate: function(val){ return !val || val > 0; } },
+            sendingLimit: {value: 5, required: false, validate: function(val){return (val>0 || val===undefined);}},
             devices: {value: []}
         },
         label: function() {
@@ -25,6 +26,8 @@
             if(this.debugmode)
                 $("#node-input-debugmode").prop('checked', true);
             $('#node-config-input-reconnectPeriod').val(this.reconnectPeriod || 1000);
+
+            $('#node-config-input-sendingLimit').val(this.sendingLimit || 5);
             
             cleanUp = function() {
                 if(!!sse)
@@ -313,6 +316,10 @@
         <label for="node-config-input-reconnectPeriod"><i class="fa fa-refresh"></i> Reconnect period [ms]</label>
         <input type="number" id="node-config-input-reconnectPeriod" placeholder="1000">
     </div>
+    <div class="form-row">
+        <label for="node-config-input-sendingLimit"><i class="fa fa-hand-paper-o"></i> Rate limit [ms]</label>
+        <input type="number" id="node-config-input-sendingLimit" placeholder="5">
+    </div>
 
     
     <div class="form-row">
@@ -444,6 +451,8 @@
     <p>Specify <b>host</b> and <b>port</b> of Hapcan ethernet interface.</p>
     <p><b>Reconnect period</b> will be used when node lose connection. After this period of time the node will 
         try to connect to the Ethernet module again.
+    </p>
+    <p><b>Rate limit</b> is used by internal queue buffer to slow down the speed of sending subsequent frames. The value is the minimal timespan between each message will be send to Hapcan bus in miliseconds.
     </p>
     <p><b>Debug mode</b> will displat each send and received Hapcan frame in the system console (when Node-red is running as a console application)</p>
     <p><b>Discover/Refresh devices</b> button will fire a device searching procedure (from group 1 to 255). The found devices will
