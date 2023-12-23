@@ -84,20 +84,21 @@
                 })
             }
             
-            onDeviceRefreshClick = function(evt)
+            onDeviceRefreshClick = async function(evt)
             {
                 let deviceId = $(evt.currentTarget).closest('.hapcan-device').attr('hapcan-device-id')
-                var deviceIdx = config.devices.findIndex( v => v.id === deviceId )
-                // if(deviceIdx > -1)
-                // {
-                //     config.devices.splice(deviceIdx, 1)
-                //     var tableRow = $(`#hapcan-devices #hapcan-device-${deviceId}`)
-                //     tableRow.children('.caret').off('click')
-                //     $(`#hapcan-devices #hapcan-device-${deviceId} .hapcan-device-action-refresh`).off('click', onDeviceRefreshClick)
-                //     $(`#hapcan-devices #hapcan-device-${deviceId} .hapcan-device-action-delete`).off('click', onDeviceDeleteClick)
-                //     tableRow.remove()
 
-                // }
+                $(`#hapcan-devices #hapcan-device-${deviceId}`)
+                    .addClass('hapcan-device-refreshing')
+                    .removeClass('hapcan-device-need-refresh')
+                    .removeClass('hapcan-device-not-found')
+
+                var device = config.devices.find( v => v.id === deviceId )
+                if(device !== undefined)
+                {
+                    await $.post(`hapcan-gateway/${config.id}/device/${device.node}/${device.group}/refresh`)
+                    
+                }
             }
 
             onDeviceDeleteClick = function(evt)
@@ -187,6 +188,7 @@
                         .filter(function(){return $(this).hasClass('hapcan-device-need-refresh')})
                         .addClass('hapcan-device-not-found')
                         .removeClass('hapcan-device-need-refresh')
+                        .removeClass('hapcan-device-refreshing')
                 })
 
                 sse.addEventListener('deviceFound', function(e) 
@@ -199,6 +201,17 @@
                 {
                     console.log(`device updated`)
                     deviceUpdate(JSON.parse(e.data))
+                })
+
+                sse.addEventListener('refreshingDeviceEnded', function(e) 
+                {
+                    console.log('refreshingDeviceEnded')
+
+                    $('#hapcan-devices > div:not(:first-child)')
+                        .filter(function(){return $(this).hasClass('hapcan-device-refreshing')})
+                        .removeClass('hapcan-device-not-found')
+                        .removeClass('hapcan-device-need-refresh')
+                        .removeClass('hapcan-device-refreshing')
                 })
 
                 sse.addEventListener('searchingGroup', function(e) 
@@ -239,10 +252,14 @@
                 discovering = !discovering
                 if(discovering)
                 {
-                    $('#hapcan-devices > div:not(:first-child)').addClass('hapcan-device-need-refresh').removeClass('hapcan-device-not-found')
+                    $('#hapcan-devices > div:not(:first-child)')
+                        .addClass('hapcan-device-need-refresh')
+                        .removeClass('hapcan-device-not-found')
+                        .removeClass('hapcan-device-refreshing')
+
                     $(this).html('<i class="fa fa-refresh"></i> Starting discovery (click to stop)')
                     
-                    await $.post(`hapcan-gateway/${config.id}/discover/run/1`)
+                    await $.post(`hapcan-gateway/${config.id}/discover/run`)
 
                     if(!discovering)
                         return                            
@@ -378,6 +395,11 @@
             .hapcan-device-need-refresh {
                 opacity: 0.6;
             }
+
+            .hapcan-device-refreshing {
+                color: orange;
+            }
+
 
             #hapcan-devices .caret {
                 cursor: pointer;

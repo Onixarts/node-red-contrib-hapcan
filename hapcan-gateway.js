@@ -604,11 +604,42 @@ module.exports = function (RED) {
             }
         }
 
-        RED.httpAdmin.post("/hapcan-gateway/:id/discover/run/:group", RED.auth.needsPermission('serial.read'), async function(req,res) {
+        RED.httpAdmin.post("/hapcan-gateway/:id/device/:node/:group/refresh", RED.auth.needsPermission('serial.read'), async function(req,res) {
             
             var gatewayNode = RED.nodes.getNode(req.params.id);
-            let group = Number(req.params.group)
-            let devicesFound = []
+            var node = req.params.node
+            var group = req.params.group
+            
+            gatewayNode.stopDiscoverActivity = false
+            gatewayNode.sse({event: 'refreshingDeviceStarted'})
+            res.status(200).end()
+
+            try{
+                    var deviceId = ('00'+ node.toString(16)).substr(-2).toUpperCase() + ('00'+ group.toString(16)).substr(-2).toUpperCase()
+                    var device = gatewayNode.devices.find( v => v.id === deviceId )
+                    if( device === undefined )
+                        throw new Error('Device not found in cache')
+
+                    let deviceObject = new HapcanDevice()
+                    Object.assign(deviceObject, device)
+
+                    let devicesToRefresh = []
+                    devicesToRefresh.push(deviceObject)
+
+                    await gatewayNode.refreshDeviceInfo(devicesToRefresh)
+            }
+            catch(e)
+            {
+                if(gatewayNode.debugmode)
+                    gatewayNode.error(`Refreshing device (${node}, ${group}) failed: ${e}`)
+            }
+                            
+            gatewayNode.sse({event: 'refreshingDeviceEnded'})
+        });
+
+        RED.httpAdmin.post("/hapcan-gateway/:id/discover/run", RED.auth.needsPermission('serial.read'), async function(req,res) {
+            
+            var gatewayNode = RED.nodes.getNode(req.params.id);
             
             //TODO: sprawdzić czy już nie trwa wyszukiwanie
             gatewayNode.stopDiscoverActivity = false
