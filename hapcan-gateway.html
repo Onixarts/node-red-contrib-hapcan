@@ -343,6 +343,8 @@
                 padding-right: 16px;
                 vertical-align: top;
                 display: table-cell;
+                overflow: visible;
+                max-width: 150px;
             }
 
             #hapcan-devices > div:hover {
@@ -385,6 +387,13 @@
             #hapcan-devices ul {
                 list-style-type: none;
             }
+
+            #hapcan-devices ul li {
+                display: inline-flex;
+                align-items: baseline;
+                gap: 4px;
+                margin-right: 30px;
+            }
               
             #hapcan-devices .caret::before {
                 content: "\25B6";
@@ -401,6 +410,10 @@
 
             #hapcan-devices .nested {
                 display: none;
+            }
+
+            #hapcan-devices .nested input{
+                width: 200px;
             }
             
             #hapcan-devices .active {
