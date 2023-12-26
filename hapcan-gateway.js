@@ -200,7 +200,7 @@ module.exports = function (RED) {
         this.messageReceived = function(frame)
         {
             if(node.debugmode)
-                node.log('received: << ' + node.messageToString(frame));
+                node.log('received: <<  ' + node.messageToString(frame));
 
             var hapcanMsg = new HapcanMessage(frame);
 
