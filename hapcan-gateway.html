@@ -10,7 +10,8 @@
             debugmode: {value: false},
             reconnectPeriod: {value: 1000, validate: function(val){ return !val || val > 0; } },
             sendingLimit: {value: 5, required: false, validate: function(val){return (val>0 || val===undefined);}},
-            devices: {value: []}
+            devices: {value: []},
+            devicesCustomNamesHistory: {value: []}
         },
         label: function() {
             return this.host+':'+this.port + ' ('+this.node+','+this.group+')';
@@ -48,6 +49,14 @@
                         device.channels = []
                     for(let i = 0; i < device.channels.length; i++)
                     {
+                        if(device.channels[i].customName === '' && config.devicesCustomNamesHistory !== undefined)
+                        {
+                            let deviceChannelId = `${device.serialNumber}:${i}`
+                            let deviceCustomNamesHistory = config.devicesCustomNamesHistory.find((v)=> v.id === deviceChannelId )
+                            if(deviceCustomNamesHistory !== undefined)
+                                device.channels[i].customName = deviceCustomNamesHistory.channelName
+                        }
+
                         channelsRowContent += `<li id="hapcan-device-${device.id}-channel-${i}"><i class="fa ${device.channels[i].icon}"></i> ${i+1}. <input node="${device.node}" group="${device.group}" channel="${i}" type="text" placeholder="${device.channels[i].name}" value="${device.channels[i].customName}"></li>`
                     }
 
@@ -289,7 +298,7 @@
         },
         oneditsave: function(){
             this.debugmode = $("#node-input-debugmode").is(":checked") ? true : false;
-            
+
             let config = this
             $('#hapcan-devices input').each(function(index){
                 let node = $(this).attr('node')
@@ -302,9 +311,25 @@
                     if( channel !== undefined && Number(channel) >= 0 && Number(channel) < config.devices[deviceIdx].channels.length )
                     {
                         config.devices[deviceIdx].channels[channel].customName = this.value
+                        let deviceChannelId = `${config.devices[deviceIdx].serialNumber}:${channel}`
+                        if(config.devicesCustomNamesHistory === undefined)
+                            config.devicesCustomNamesHistory = []
+                        let deviceCustomNamesHistory = config.devicesCustomNamesHistory.find((v)=> v.id === deviceChannelId )
+                        if(deviceCustomNamesHistory === undefined)
+                        {
+                            if(this.value !== '')
+                                config.devicesCustomNamesHistory.push({id: deviceChannelId, channelName: this.value})
+                        }
+                        else
+                        {
+                            deviceCustomNamesHistory.channelName = this.value
+                        }
                     }
                 }
             })
+
+            config.devicesCustomNamesHistory = config.devicesCustomNamesHistory.filter((v)=> v.channelName !== '')
+
 
             cleanUp()
         },
